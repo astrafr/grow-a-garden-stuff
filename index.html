@@ -1,151 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Grow-A-Garden Tracker with Live Timer & Notifications</title>
-<style>
-  body {
-    background-color: #000;
-    color: #a474ff;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-    padding: 2rem 1rem 3rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-  h1 {
-    color: #bb80ff;
-    margin: 0 0 0.3rem;
-    font-weight: 700;
-    text-shadow: 0 0 8px #9b59b6;
-    user-select: none;
-  }
-  #restock-timer {
-    font-size: 4rem;
-    font-weight: 700;
-    color: #a474ff;
-    margin-bottom: 1rem;
-    min-width: 280px;
-    text-align: center;
-    text-shadow: 0 0 12px #8e44ad;
-    user-select: none;
-  }
-  #buttons {
-    margin-bottom: 1.5rem;
-  }
-  button {
-    background: transparent;
-    border: 2px solid #9b59b6;
-    color: #bb80ff;
-    font-weight: 600;
-    font-size: 1.1rem;
-    padding: 0.5rem 1.5rem;
-    margin: 0 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    user-select: none;
-  }
-  button:hover {
-    background: #9b59b6;
-    color: #000;
-  }
-  button.active {
-    background: #8e44ad;
-    color: #fff;
-    border-color: #8e44ad;
-    box-shadow: 0 0 10px #8e44adaa;
-  }
-  #toggle-out-stock {
-    margin-bottom: 1rem;
-    border-color: #bb80ff;
-    color: #bb80ff;
-  }
-  #toggle-out-stock:hover {
-    background: #bb80ff;
-    color: #000;
-  }
-  #content-wrapper {
-    display: flex;
-    gap: 2rem;
-    width: 100%;
-    max-width: 900px;
-  }
-  #content {
-    background-color: #1a0d38;
-    border-radius: 12px;
-    padding: 1rem 2rem;
-    flex-grow: 1;
-    font-size: 1.15rem;
-    box-shadow: 0 0 20px #8e44ad99;
-    user-select: none;
-    max-height: 600px;
-    overflow-y: auto;
-  }
-  #out-stock-list {
-    background-color: #2a1a56;
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
-    width: 320px;
-    font-size: 1rem;
-    box-shadow: 0 0 20px #6e2ecccc;
-    user-select: none;
-    display: none;
-    max-height: 600px;
-    overflow-y: auto;
-  }
-  .item {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.6rem 0;
-    border-bottom: 1px solid #4b297b;
-  }
-  .item:last-child {
-    border-bottom: none;
-  }
-  .in-stock {
-    color: #7df57d;
-    font-weight: 700;
-  }
-  .out-stock {
-    color: #ff7777;
-    font-style: italic;
-  }
-  #last-updated {
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    font-style: italic;
-    color: #b594ff;
-    text-align: center;
-    user-select: none;
-  }
-  #error {
-    color: #ff6666;
-    margin-top: 1rem;
-    user-select: none;
-  }
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    20%, 60% { transform: translateX(-10px); }
-    40%, 80% { transform: translateX(10px); }
-  }
-  .shake {
-    animation: shake 0.5s ease-in-out;
-  }
-  .flash-red {
-    background-color: #7e1a1a !important;
-    transition: background-color 0.3s ease;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Grow-A-Garden Tracker</title>
+  <style>
+    body {
+      background-color: #000;
+      color: #a474ff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 2rem 1rem 3rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    h1 {
+      color: #bb80ff;
+      margin: 0 0 0.3rem;
+      font-weight: 700;
+      text-shadow: 0 0 8px #9b59b6;
+      user-select: none;
+    }
+    #restock-timer {
+      font-size: 3rem;
+      font-weight: 700;
+      color: #a474ff;
+      margin: 1rem 0 0.3rem;
+      text-align: center;
+      text-shadow: 0 0 12px #8e44ad;
+      user-select: none;
+    }
+    #seed-shop-timer {
+      font-size: 1.2rem;
+      color: #bca0ff;
+      margin-bottom: 1rem;
+      text-shadow: 0 0 6px #6f42c1;
+    }
+    #buttons {
+      margin-bottom: 1.5rem;
+    }
+    button {
+      background: transparent;
+      border: 2px solid #9b59b6;
+      color: #bb80ff;
+      font-weight: 600;
+      font-size: 1.1rem;
+      padding: 0.5rem 1.5rem;
+      margin: 0 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      user-select: none;
+    }
+    button:hover {
+      background: #9b59b6;
+      color: #000;
+    }
+    button.active {
+      background: #8e44ad;
+      color: #fff;
+      border-color: #8e44ad;
+      box-shadow: 0 0 10px #8e44adaa;
+    }
+    #toggle-out-stock {
+      margin-bottom: 1rem;
+      border-color: #bb80ff;
+      color: #bb80ff;
+    }
+    #toggle-out-stock:hover {
+      background: #bb80ff;
+      color: #000;
+    }
+    #content-wrapper {
+      display: flex;
+      gap: 2rem;
+      width: 100%;
+      max-width: 900px;
+    }
+    #content {
+      background-color: #1a0d38;
+      border-radius: 12px;
+      padding: 1rem 2rem;
+      flex-grow: 1;
+      font-size: 1.15rem;
+      box-shadow: 0 0 20px #8e44ad99;
+      user-select: none;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    #out-stock-list {
+      background-color: #2a1a56;
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      width: 320px;
+      font-size: 1rem;
+      box-shadow: 0 0 20px #6e2ecccc;
+      user-select: none;
+      display: none;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid #4b297b;
+    }
+    .item:last-child {
+      border-bottom: none;
+    }
+    .in-stock {
+      color: #7df57d;
+      font-weight: 700;
+    }
+    .out-stock {
+      color: #ff7777;
+      font-style: italic;
+    }
+    #last-updated {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      font-style: italic;
+      color: #b594ff;
+      text-align: center;
+      user-select: none;
+    }
+    #error {
+      color: #ff6666;
+      margin-top: 1rem;
+      user-select: none;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-10px); }
+      40%, 80% { transform: translateX(10px); }
+    }
+    .shake {
+      animation: shake 0.5s ease-in-out;
+    }
+    .flash-red {
+      background-color: #7e1a1a !important;
+      transition: background-color 0.3s ease;
+    }
+  </style>
 </head>
 <body>
 
 <h1>🌱 Grow-A-Garden Tracker</h1>
 <div id="restock-timer">0</div>
+<div id="seed-shop-timer">🌾 Seed shop restocks in: Loading...</div>
 
 <div id="buttons">
   <button id="btn-seeds" class="active">Seeds</button>
@@ -166,26 +172,14 @@
   const API_URL = 'https://corsproxy.io/?https://gagstock.gleeze.com/grow-a-garden';
 
   const RARE_ITEMS = new Set([
-    "Beanstalk",
-    "Ember Lily",
-    "Sugar Apple",
-    "Burning Bud",
-    "Blueberry"
+    "Beanstalk", "Ember Lily", "Sugar Apple", "Burning Bud", "Blueberry"
   ]);
 
   const FIXED_GEAR = [
-    "Master Sprinkler",
-    "Cleaning Spray",
-    "Favorite Tool",
-    "Harvest Tool",
-    "Friendship Pot",
-    "Godly Sprinkler",
-    "Advanced Sprinkler",
-    "Basic Sprinkler",
-    "Trowel",
-    "Recall Wrench",
-    "Watering Can"
+    "Master Sprinkler", "Cleaning Spray", "Favorite Tool", "Harvest Tool", "Friendship Pot",
+    "Godly Sprinkler", "Advanced Sprinkler", "Basic Sprinkler", "Trowel", "Recall Wrench", "Watering Can"
   ];
+
   const FIXED_SEEDS = [
     "Carrot","Strawberry","Blueberry","Orange Tulip","Tomato","Daffodil","Watermelon",
     "Pumpkin","Apple","Bamboo","Coconut","Cactus","Dragon Fruit","Mango","Grape",
@@ -199,6 +193,7 @@
   const outStockEl = document.getElementById('out-stock-list');
   const lastUpdatedEl = document.getElementById('last-updated');
   const restockTimerEl = document.getElementById('restock-timer');
+  const seedShopTimerEl = document.getElementById('seed-shop-timer');
   const errorEl = document.getElementById('error');
   const btnSeeds = document.getElementById('btn-seeds');
   const btnGear = document.getElementById('btn-gear');
@@ -227,6 +222,13 @@
     outStockEl.style.display = showOutStock ? 'block' : 'none';
     toggleOutStockBtn.textContent = showOutStock ? 'Hide Out-of-Stock Items' : 'Show Out-of-Stock Items';
   };
+
+  function formatTime(secs) {
+    const h = String(Math.floor(secs / 3600)).padStart(2, '0');
+    const m = String(Math.floor((secs % 3600) / 60)).padStart(2, '0');
+    const s = String(secs % 60).padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  }
 
   function timeAgo(ts) {
     if (!ts) return 'never';
@@ -273,7 +275,6 @@
     if (!data) return;
     const group = data[currentCategory];
     if (!group) return;
-
     group.items.forEach(item => {
       if (RARE_ITEMS.has(item.name) && item.quantity > 0 && !notifiedItems.has(item.name)) {
         showNotification(item);
@@ -294,8 +295,7 @@
         });
       }
     });
-    if (times.length === 0) return 0;
-    return Math.min(...times);
+    return times.length ? Math.min(...times) : 0;
   }
 
   function render(data) {
@@ -308,36 +308,28 @@
       return;
     }
     currentData = data;
-
     toggleOutStockBtn.style.display = 'inline-block';
 
-    let itemsToShow = [];
-    if (currentCategory === 'gear') {
-      const gearItems = data.gear?.items || [];
-      const gearMap = new Map(gearItems.map(i => [i.name, i]));
-      itemsToShow = FIXED_GEAR.map(name => {
-        const item = gearMap.get(name);
-        return {
-          name,
-          quantity: item ? item.quantity : 0,
-        };
-      });
-    } else {
-      const seedItems = data.seed?.items || [];
-      const seedMap = new Map(seedItems.map(i => [i.name, i]));
-      itemsToShow = FIXED_SEEDS.map(name => {
-        const item = seedMap.get(name);
-        return {
-          name,
-          quantity: item ? item.quantity : 0,
-        };
-      });
-    }
+    // Update seed timer
+    const seedSeconds = data.seed?.items?.[0]?.restock_seconds || 0;
+    seedShopTimerEl.textContent = seedSeconds > 0
+      ? `🌾 Seed shop restocks in: ${formatTime(seedSeconds)}`
+      : '🌾 No upcoming seed restock.';
 
-    updateLastSeen(currentCategory, itemsToShow);
+    const items = currentCategory === 'gear'
+      ? FIXED_GEAR.map(name => {
+          const item = data.gear?.items.find(i => i.name === name);
+          return { name, quantity: item ? item.quantity : 0 };
+        })
+      : FIXED_SEEDS.map(name => {
+          const item = data.seed?.items.find(i => i.name === name);
+          return { name, quantity: item ? item.quantity : 0 };
+        });
 
-    const inStock = itemsToShow.filter(i => i.quantity > 0);
-    const outStock = itemsToShow.filter(i => i.quantity <= 0);
+    updateLastSeen(currentCategory, items);
+
+    const inStock = items.filter(i => i.quantity > 0);
+    const outStock = items.filter(i => i.quantity <= 0);
 
     contentEl.innerHTML = inStock.length
       ? inStock.map(item => `<div class="item in-stock">${item.name} <span>✅ In stock x${item.quantity}</span></div>`).join('')
@@ -351,9 +343,7 @@
       : '<div>No out-of-stock items.</div>';
 
     if (!showOutStock) outStockEl.style.display = 'none';
-
     lastUpdatedEl.textContent = 'Last updated: ' + new Date(data.updated_at || Date.now()).toLocaleTimeString();
-
     checkNotifications(data);
   }
 
@@ -382,7 +372,7 @@
       return;
     }
     restockSeconds = getNextRestockSeconds(data);
-    restockTimerEl.textContent = restockSeconds;
+    restockTimerEl.textContent = formatTime(restockSeconds);
     render(data);
   }
 
@@ -393,7 +383,7 @@
       if (restockSeconds < 0) {
         await updateData();
       } else {
-        restockTimerEl.textContent = restockSeconds;
+        restockTimerEl.textContent = formatTime(restockSeconds);
       }
     }, 1000);
   }
@@ -408,6 +398,5 @@
 
   startApp();
 </script>
-
 </body>
 </html>
