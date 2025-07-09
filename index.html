@@ -5,94 +5,108 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Grow-A-Garden Tracker</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
   body {
-    background-color: #000;
-    color: #ddd;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0; padding: 2rem;
-    display: flex; flex-direction: column; align-items: center;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    color: #e0e0e0;
+    font-family: 'Montserrat', sans-serif;
+    margin: 0;
+    padding: 2rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
     transition: background-color 0.3s ease;
   }
   h1 {
-    color: #b388eb;
-    text-shadow: 0 0 12px #9a5edf;
-    margin-bottom: 0.5rem;
+    font-weight: 700;
+    color: #9b59b6;
+    margin-bottom: 0.2rem;
+    text-shadow: 0 0 8px #8e44adaa;
   }
   #restock-timer {
-    font-size: 2.5rem;
+    font-size: 3rem;
     font-weight: 700;
-    color: #d6a8ff;
-    text-shadow: 0 0 15px #9a5edf;
-    margin-bottom: 1.5rem;
-    min-width: 300px;
+    color: #8e44ad;
+    text-shadow: 0 0 12px #a64ca6cc;
+    margin-bottom: 2rem;
+    min-width: 280px;
     text-align: center;
   }
   #buttons {
-    margin-bottom: 1rem;
+    margin-bottom: 2rem;
   }
   button {
     background: transparent;
-    border: 2px solid #9a5edf;
-    color: #b388eb;
-    font-size: 1rem;
+    border: 2px solid #9b59b6;
+    color: #bb86fc;
+    font-weight: 600;
+    font-size: 1.1rem;
+    padding: 0.6rem 1.8rem;
     margin: 0 10px;
-    padding: 0.5rem 1.5rem;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 6px #7e3dbb33;
   }
-  button:hover, button.active {
-    background-color: #9a5edf;
-    color: #000;
-    box-shadow: 0 0 15px 3px #9a5edf;
+  button:hover {
+    background: #9b59b6;
+    color: #fff;
+    box-shadow: 0 0 18px #9b59b6cc;
+  }
+  button.active {
+    background: #8e44ad;
+    color: #fff;
+    box-shadow: 0 0 24px #8e44adcc;
+    border-color: #8e44ad;
   }
   #content {
-    max-width: 700px;
+    background: #222239cc;
+    border-radius: 16px;
+    box-shadow: 0 0 30px 5px #7e3dbb77;
     width: 100%;
-    background-color: #1e0f44;
-    border-radius: 12px;
+    max-width: 640px;
     padding: 1rem 2rem;
-    box-shadow: 0 0 40px 10px rgba(154, 94, 223, 0.8);
     font-size: 1.15rem;
+    user-select: none;
   }
   .item {
-    padding: 8px 0;
-    border-bottom: 1px solid #4a2f8f;
     display: flex;
     justify-content: space-between;
+    border-bottom: 1px solid #4b3a71;
+    padding: 0.7rem 0;
+  }
+  .item:last-child {
+    border-bottom: none;
   }
   .in-stock {
-    color: #8effa3;
-    font-weight: 600;
+    color: #58d68d;
+    font-weight: 700;
   }
   .out-stock {
-    color: #ff8787;
+    color: #e74c3c;
     font-style: italic;
   }
   #last-updated {
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    color: #c8a2ff;
-    text-align: center;
+    margin-top: 1.4rem;
+    font-size: 0.95rem;
     font-style: italic;
+    text-align: center;
+    color: #b294d9cc;
+    user-select: none;
   }
-
   /* Shake animation */
   @keyframes shake {
-    0% { transform: translate(0, 0); }
-    20% { transform: translate(-10px, 0); }
-    40% { transform: translate(10px, 0); }
-    60% { transform: translate(-10px, 0); }
-    80% { transform: translate(10px, 0); }
-    100% { transform: translate(0, 0); }
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-12px); }
+    40%, 80% { transform: translateX(12px); }
   }
   .shake {
     animation: shake 0.5s ease-in-out;
   }
-
   /* Red flash */
   .flash-red {
-    background-color: #8b0000 !important;
+    background-color: #7e1a1a !important;
     transition: background-color 0.3s ease;
   }
 </style>
@@ -103,15 +117,15 @@
 <div id="restock-timer">Loading restock timer...</div>
 
 <div id="buttons">
-  <button id="show-seeds" class="active">Seeds</button>
-  <button id="show-gear">Gear</button>
+  <button id="btn-seeds" class="active">Seeds</button>
+  <button id="btn-gear">Gear</button>
 </div>
 
 <div id="content">Loading...</div>
 <div id="last-updated"></div>
 
 <script>
-  const API_URL = '/api/stock'; // Your API endpoint here
+  const API_URL = 'https://gagstock.gleeze.com/grow-a-garden'; // Replace with your actual endpoint
   const FETCH_INTERVAL = 1000;
 
   const RARE_ITEMS = new Set([
@@ -147,8 +161,8 @@
   const contentEl = document.getElementById('content');
   const lastUpdatedEl = document.getElementById('last-updated');
   const restockTimerEl = document.getElementById('restock-timer');
-  const btnSeeds = document.getElementById('show-seeds');
-  const btnGear = document.getElementById('show-gear');
+  const btnSeeds = document.getElementById('btn-seeds');
+  const btnGear = document.getElementById('btn-gear');
 
   let currentCategory = 'seed';
   let currentData = null;
@@ -229,7 +243,6 @@
     });
   }
 
-  // Find earliest restock_seconds > 0 across all items (seeds + gear)
   function getNextRestockSeconds(data) {
     if (!data) return null;
     let times = [];
@@ -254,7 +267,6 @@
     }
     currentData = data;
 
-    // Update restock timer at top
     const nextRestock = getNextRestockSeconds(data);
     if (nextRestock !== null) {
       restockTimerEl.textContent = formatTimeLeft(nextRestock);
@@ -271,7 +283,6 @@
         return {
           name,
           quantity: item ? item.quantity : 0,
-          restock_seconds: item ? item.restock_seconds ?? 0 : 0
         };
       });
     } else {
@@ -282,7 +293,6 @@
         return {
           name,
           quantity: item ? item.quantity : 0,
-          restock_seconds: item ? item.restock_seconds ?? 0 : 0
         };
       });
     }
@@ -291,10 +301,10 @@
 
     contentEl.innerHTML = itemsToShow.map(item => {
       if (item.quantity > 0) {
-        return `<div class="item in-stock">${item.name}: ✅ In stock x${item.quantity}</div>`;
+        return `<div class="item in-stock">${item.name} <span>✅ In stock x${item.quantity}</span></div>`;
       } else {
         const last = lastSeenTimestamps[currentCategory + ':' + item.name];
-        return `<div class="item out-stock">${item.name}: ❌ Out of stock (last seen ${timeAgo(last)})</div>`;
+        return `<div class="item out-stock">${item.name} <span>❌ Out of stock (last seen ${timeAgo(last)})</span></div>`;
       }
     }).join('');
 
@@ -302,8 +312,6 @@
 
     checkNotifications(data);
   }
-
-  let currentData = null;
 
   async function fetchData() {
     try {
@@ -321,18 +329,15 @@
     if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
       await Notification.requestPermission();
     }
-
     async function update() {
       const data = await fetchData();
       render(data);
     }
-
     await update();
     setInterval(update, FETCH_INTERVAL);
   }
 
   start();
-
 </script>
 </body>
 </html>
