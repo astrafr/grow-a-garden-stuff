@@ -55,9 +55,35 @@
     .out-stock {
       color: #ff8787;
     }
-    .hidden-items {
+
+    /* Modal */
+    .modal {
       display: none;
-      margin-top: 1rem;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #1e0f44;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 0 30px 10px rgba(180, 125, 255, 0.9);
+      z-index: 999;
+      max-height: 80vh;
+      overflow-y: auto;
+      max-width: 600px;
+      width: 90%;
+    }
+    .modal h3 {
+      color: #c8a2ff;
+      margin-top: 0;
+    }
+    .modal-close {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 1.5rem;
+      color: #c8a2ff;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -66,10 +92,17 @@
   <div id="last-updated"></div>
   <div id="sections"></div>
 
+  <div class="modal" id="itemModal">
+    <div class="modal-close" onclick="document.getElementById('itemModal').style.display='none'">&times;</div>
+    <h3 id="modalTitle"></h3>
+    <div id="modalContent"></div>
+  </div>
+
   <script>
     const API_URL = '/api/stock';
     const FETCH_INTERVAL = 1000;
     let lastSeen = JSON.parse(localStorage.getItem('lastSeen') || '{}');
+    let currentData = null;
 
     function secondsToHMS(seconds) {
       const h = Math.floor(seconds / 3600);
@@ -104,8 +137,37 @@
       localStorage.setItem('lastSeen', JSON.stringify(lastSeen));
     }
 
+    function showModal(category) {
+      const modal = document.getElementById('itemModal');
+      const title = document.getElementById('modalTitle');
+      const content = document.getElementById('modalContent');
+      const group = currentData[category];
+      const prefix = category + ':';
+
+      const allItems = new Set([
+        ...Object.keys(lastSeen).filter(k => k.startsWith(prefix)).map(k => k.slice(prefix.length)),
+        ...group.items.map(i => i.name)
+      ]);
+
+      const nowStock = new Map(group.items.map(i => [i.name, i]));
+      const html = Array.from(allItems).map(name => {
+        const item = nowStock.get(name);
+        if (item) {
+          return `<div class="item in-stock">${item.emoji || ''} ${name}: ✅ x${item.quantity}</div>`;
+        } else {
+          const last = lastSeen[prefix + name];
+          return `<div class="item out-stock">${name}: ❌ Last seen ${timeAgo(last)} ago</div>`;
+        }
+      }).join('');
+
+      title.textContent = category.toUpperCase() + ' ITEMS';
+      content.innerHTML = html;
+      modal.style.display = 'block';
+    }
+
     function render(data) {
       if (!data) return;
+      currentData = data;
       const container = document.getElementById('sections');
       const updated = document.getElementById('last-updated');
       container.innerHTML = '';
@@ -118,42 +180,14 @@
         if (!group) return;
         updateLastSeen(category, group.items);
 
-        const prefix = category + ':';
-        const currentNames = new Set(group.items.map(i => i.name));
-        const knownItems = new Set([
-          ...Object.keys(lastSeen)
-            .filter(k => k.startsWith(prefix))
-            .map(k => k.slice(prefix.length)),
-          ...Array.from(currentNames)
-        ]);
-
         const section = document.createElement('div');
         section.className = 'section';
         section.innerHTML = `
           <h2>${category.toUpperCase()}</h2>
           <div class="timer">Restocks in: ${group.countdown}</div>
-          <div class="visible-items">
-            ${group.items.map(i => `<div class="item in-stock">${i.emoji || ''} ${i.name}: ✅ x${i.quantity}</div>`).join('')}
-          </div>
-          <div class="hidden-items" id="extra-${category}"></div>
+          ${group.items.map(i => `<div class="item in-stock">${i.emoji || ''} ${i.name}: ✅ x${i.quantity}</div>`).join('')}
         `;
-
-        section.addEventListener('click', () => {
-          const extra = document.getElementById(`extra-${category}`);
-          if (extra.innerHTML === '') {
-            extra.innerHTML = Array.from(knownItems).filter(name => {
-              return !group.items.some(i => i.name === name);
-            }).map(name => {
-              const emoji = '';
-              const last = lastSeen[prefix + name];
-              return `<div class="item out-stock">${emoji} ${name}: ❌ Last seen ${timeAgo(last)} ago</div>`;
-            }).join('');
-            extra.style.display = 'block';
-          } else {
-            extra.style.display = extra.style.display === 'none' ? 'block' : 'none';
-          }
-        });
-
+        section.addEventListener('click', () => showModal(category));
         container.appendChild(section);
       });
     }
