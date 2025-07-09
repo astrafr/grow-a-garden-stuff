@@ -262,7 +262,7 @@
   function showNotification(item) {
     if (Notification.permission === 'granted') {
       new Notification('🌟 Rare Seed Alert', {
-        body: ${item.name} is in stock! (x${item.quantity}),
+        body: `${item.name} is in stock! (x${item.quantity})`,
         icon: 'https://em-content.zobj.net/source/twitter/376/glowing-star_1f31f.png'
       });
     }
@@ -340,13 +340,13 @@
     const outStock = itemsToShow.filter(i => i.quantity <= 0);
 
     contentEl.innerHTML = inStock.length
-      ? inStock.map(item => <div class="item in-stock">${item.name} <span>✅ In stock x${item.quantity}</span></div>).join('')
+      ? inStock.map(item => `<div class="item in-stock">${item.name} <span>✅ In stock x${item.quantity}</span></div>`).join('')
       : '<div>No items in stock.</div>';
 
     outStockEl.innerHTML = outStock.length
       ? outStock.map(item => {
           const last = lastSeenTimestamps[currentCategory + ':' + item.name];
-          return <div class="item out-stock">${item.name} <span>❌ Last seen ${timeAgo(last)}</span></div>;
+          return `<div class="item out-stock">${item.name} <span>❌ Last seen ${timeAgo(last)}</span></div>`;
         }).join('')
       : '<div>No out-of-stock items.</div>';
 
@@ -366,7 +366,7 @@
 
     const formattedESTTime = estFormatter.format(updatedDate);
 
-    lastUpdatedEl.textContent = Updated at ${formattedESTTime} EST;
+    lastUpdatedEl.textContent = `Updated at ${formattedESTTime} EST`;
 
     checkNotifications(data);
   }
@@ -375,7 +375,7 @@
     try {
       errorEl.textContent = '';
       const response = await fetch(API_URL);
-      if (!response.ok) throw new Error(API responded with status ${response.status});
+      if (!response.ok) throw new Error(`API responded with status ${response.status}`);
       const json = await response.json();
       return json.data;
     } catch (err) {
