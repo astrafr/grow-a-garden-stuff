@@ -58,21 +58,24 @@
     const API_URL = 'https://corsproxy.io/?https://gagstock.gleeze.com/grow-a-garden';
     const restockTimerEl = document.getElementById('restock-timer');
     const contentEl = document.getElementById('content');
+    let liveCountdown = 0;
 
     function parseCountdown(str) {
-      if (!str || typeof str !== 'string') return 0;
+      if (!str || typeof str !== 'string' || !str.includes(':')) {
+        console.warn("Invalid countdown string:", str);
+        return 0;
+      }
       const parts = str.split(':');
-      if (parts.length !== 3) return 0;
       const [h, m, s] = parts.map(x => parseInt(x, 10));
-      if (isNaN(h) || isNaN(m) || isNaN(s)) return 0;
+      if ([h, m, s].some(n => isNaN(n))) return 0;
       return h * 3600 + m * 60 + s;
     }
 
     function secondsToTime(secs) {
-      if (secs <= 0) return "00:00:00";
-      const h = String(Math.floor(secs / 3600)).padStart(2, '0');
-      const m = String(Math.floor((secs % 3600) / 60)).padStart(2, '0');
-      const s = String(secs % 60).padStart(2, '0');
+      const clamped = Math.max(0, secs);
+      const h = String(Math.floor(clamped / 3600)).padStart(2, '0');
+      const m = String(Math.floor((clamped % 3600) / 60)).padStart(2, '0');
+      const s = String(clamped % 60).padStart(2, '0');
       return `${h}:${m}:${s}`;
     }
 
@@ -83,22 +86,24 @@
         return json.data;
       } catch (err) {
         restockTimerEl.textContent = '⚠️ API Error';
-        console.error(err);
+        console.error('Fetch failed:', err);
         return null;
       }
     }
 
-    async function updateUI() {
+    async function updateDataAndItems() {
       const data = await fetchData();
       if (!data) return;
 
-      const seedCountdown = parseCountdown(data.seed?.countdown);
-      const gearCountdown = parseCountdown(data.gear?.countdown);
-      const nextRestockSeconds = Math.min(seedCountdown, gearCountdown);
+      const seedCountdownStr = data.seed?.countdown || "00:00:00";
+      const gearCountdownStr = data.gear?.countdown || "00:00:00";
 
-      restockTimerEl.textContent = secondsToTime(nextRestockSeconds);
+      const seedCountdown = parseCountdown(seedCountdownStr);
+      const gearCountdown = parseCountdown(gearCountdownStr);
 
-      const allItems = [...(data.seed.items || []), ...(data.gear.items || [])];
+      liveCountdown = Math.min(seedCountdown, gearCountdown);
+
+      const allItems = [...(data.seed?.items || []), ...(data.gear?.items || [])];
       contentEl.innerHTML = allItems.map(item => {
         const isInStock = item.quantity > 0;
         return `
@@ -111,8 +116,15 @@
       }).join('');
     }
 
-    setInterval(updateUI, 1000);
-    updateUI(); // initial call
+    // Timer countdown every second
+    setInterval(() => {
+      restockTimerEl.textContent = secondsToTime(liveCountdown);
+      if (liveCountdown > 0) liveCountdown--;
+    }, 1000);
+
+    // Refresh data every 10 seconds
+    setInterval(updateDataAndItems, 10000);
+    updateDataAndItems(); // Initial call
   </script>
 </body>
 </html>
