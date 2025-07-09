@@ -60,11 +60,16 @@
     const contentEl = document.getElementById('content');
 
     function parseCountdown(str) {
-      const [h, m, s] = str.split(':').map(Number);
+      if (!str || typeof str !== 'string') return 0;
+      const parts = str.split(':');
+      if (parts.length !== 3) return 0;
+      const [h, m, s] = parts.map(x => parseInt(x, 10));
+      if (isNaN(h) || isNaN(m) || isNaN(s)) return 0;
       return h * 3600 + m * 60 + s;
     }
 
     function secondsToTime(secs) {
+      if (secs <= 0) return "00:00:00";
       const h = String(Math.floor(secs / 3600)).padStart(2, '0');
       const m = String(Math.floor((secs % 3600) / 60)).padStart(2, '0');
       const s = String(secs % 60).padStart(2, '0');
@@ -87,9 +92,10 @@
       const data = await fetchData();
       if (!data) return;
 
-      const seedTime = parseCountdown(data.seed.countdown || "00:00:00");
-      const gearTime = parseCountdown(data.gear.countdown || "00:00:00");
-      const nextRestockSeconds = Math.min(seedTime, gearTime);
+      const seedCountdown = parseCountdown(data.seed?.countdown);
+      const gearCountdown = parseCountdown(data.gear?.countdown);
+      const nextRestockSeconds = Math.min(seedCountdown, gearCountdown);
+
       restockTimerEl.textContent = secondsToTime(nextRestockSeconds);
 
       const allItems = [...(data.seed.items || []), ...(data.gear.items || [])];
@@ -106,7 +112,7 @@
     }
 
     setInterval(updateUI, 1000);
-    updateUI(); // initial
+    updateUI(); // initial call
   </script>
 </body>
 </html>
