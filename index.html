@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Grow-A-Garden Tracker - Live Every Second</title>
+  <title>Grow-A-Garden Tracker</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #000000;
+      background-color: #000;
       color: #ddd;
       padding: 2rem;
       margin: 0;
@@ -16,17 +16,20 @@
       flex-direction: column;
       align-items: center;
     }
+
     h1 {
       font-size: 3rem;
       margin-bottom: 1.5rem;
       color: #b388eb;
       text-shadow: 0 0 8px #a57adecc;
     }
+
     #last-updated {
       font-size: 1.2rem;
       margin-bottom: 1rem;
       color: #c8a2ff;
     }
+
     .section {
       background-color: #1e0f44;
       border-radius: 12px;
@@ -39,29 +42,37 @@
       cursor: pointer;
       user-select: none;
     }
+
     .section:hover {
       box-shadow: 0 0 40px 12px rgba(180, 125, 255, 0.9);
       background-color: #2a1a66;
     }
+
     .section h2 {
       font-size: 2rem;
-      margin-top: 0;
-      margin-bottom: 0.75rem;
+      margin: 0 0 0.5rem 0;
       color: #c8a2ff;
       text-shadow: 0 0 5px #b388ebcc;
     }
-    .items {
-      font-size: 1.3rem;
-      color: #e0d7ff;
-      margin-top: 0.5rem;
-    }
-    .item {
-      margin: 0.3rem 0;
-    }
+
     .timer {
       font-weight: 600;
       color: #d1b3ff;
+      margin-bottom: 0.4rem;
     }
+
+    .restocked {
+      font-size: 1rem;
+      color: #aaa1ff;
+      margin-bottom: 0.8rem;
+    }
+
+    .item {
+      font-size: 1.2rem;
+      margin: 0.3rem 0;
+      color: #e0d7ff;
+    }
+
     .error {
       color: #ff6f91;
       font-weight: 700;
@@ -72,7 +83,7 @@
 
     /* Modal overlay */
     #modal-overlay {
-      display: none; /* hidden by default */
+      display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background-color: rgba(0,0,0,0.8);
@@ -81,11 +92,11 @@
       justify-content: center;
       align-items: center;
     }
+
     #modal-overlay.active {
       display: flex;
     }
 
-    /* Modal content */
     #modal {
       background-color: #1e0f44;
       border-radius: 12px;
@@ -111,6 +122,12 @@
       font-size: 1.4rem;
       font-weight: 700;
       color: #d1b3ff;
+      margin-bottom: 0.3rem;
+    }
+
+    #modal .restocked {
+      font-size: 1rem;
+      color: #aaa1ff;
       margin-bottom: 1rem;
     }
 
@@ -119,7 +136,6 @@
       margin: 0.25rem 0;
     }
 
-    /* Close button */
     #modal-close {
       position: absolute;
       top: 15px;
@@ -129,8 +145,8 @@
       color: #c8a2ff;
       cursor: pointer;
       user-select: none;
-      transition: color 0.3s ease;
     }
+
     #modal-close:hover {
       color: #fff;
     }
@@ -149,15 +165,8 @@
       .section h2 {
         font-size: 1.5rem;
       }
-      .items {
-        font-size: 1rem;
-      }
       #modal {
         padding: 1.5rem 2rem;
-        max-width: 90vw;
-      }
-      #modal h2 {
-        font-size: 1.8rem;
       }
     }
   </style>
@@ -168,25 +177,25 @@
   <div id="sections"></div>
   <div id="error" class="error"></div>
 
-  <!-- Modal overlay -->
+  <!-- Modal -->
   <div id="modal-overlay" tabindex="-1">
-    <div id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <span id="modal-close" aria-label="Close modal" role="button" tabindex="0">&times;</span>
+    <div id="modal">
+      <span id="modal-close">&times;</span>
       <h2 id="modal-title"></h2>
       <div class="timer" id="modal-timer"></div>
+      <div class="restocked" id="modal-restocked"></div>
       <div id="modal-items"></div>
     </div>
   </div>
 
   <script>
-    const API_URL = '/api/stock'; // your proxy URL here
-    const FETCH_INTERVAL = 1000; // fetch fresh data every 1 second
-    const TIMER_TICK = 1000;     // update countdown timers every second
+    const API_URL = '/api/stock';
+    const FETCH_INTERVAL = 1000;
+    const TIMER_TICK = 1000;
 
     let countdowns = {};
-    let modalCountdown = 0;
     let modalCategory = null;
-    let modalTimerInterval = null;
+    let modalCountdown = 0;
 
     function hmsToSeconds(hms) {
       const [h, m, s] = hms.split(':').map(Number);
@@ -209,7 +218,6 @@
         return json.data;
       } catch (err) {
         document.getElementById('error').textContent = '⚠️ Failed to load stock. It might be blocked (CORS).';
-        console.error(err);
         return null;
       }
     }
@@ -218,7 +226,6 @@
       if (!data) return;
 
       countdowns = {};
-
       const container = document.getElementById('sections');
       const updated = document.getElementById('last-updated');
       container.innerHTML = '';
@@ -230,22 +237,23 @@
         if (!data[category]) return;
 
         countdowns[category] = hmsToSeconds(data[category].countdown);
+        const lastRestocked = new Date(data[category].last_stocked).toLocaleString();
 
         const section = document.createElement('div');
         section.className = 'section';
 
         section.innerHTML = `
-          <h2>${category.toUpperCase()} (Restocks in <span id="timer-${category}" class="timer">${data[category].countdown}</span>)</h2>
+          <h2>${category.toUpperCase()}</h2>
+          <div class="timer">Restocks in: <span id="timer-${category}">${data[category].countdown}</span></div>
+          <div class="restocked">Last Restocked: ${lastRestocked}</div>
           <div class="items">
-            ${data[category].items.map(item => 
+            ${data[category].items.map(item =>
               `<div class="item">${item.emoji || ''} ${item.name}: ${item.quantity}</div>`
             ).join('')}
           </div>
         `;
 
-        // Clicking box opens modal with that category’s full info
         section.addEventListener('click', () => openModal(category, data[category]));
-
         container.appendChild(section);
       });
     }
@@ -261,13 +269,9 @@
         }
       });
 
-      // Update modal timer too if open
       if (modalCategory && modalCountdown > 0) {
         modalCountdown--;
-        const modalTimerEl = document.getElementById('modal-timer');
-        if (modalTimerEl) {
-          modalTimerEl.textContent = 'Restocks in: ' + secondsToHms(modalCountdown);
-        }
+        document.getElementById('modal-timer').textContent = 'Restocks in: ' + secondsToHms(modalCountdown);
       }
     }
 
@@ -275,54 +279,40 @@
       modalCategory = category;
       modalCountdown = hmsToSeconds(categoryData.countdown);
 
-      const modalOverlay = document.getElementById('modal-overlay');
-      const modalTitle = document.getElementById('modal-title');
-      const modalTimerEl = document.getElementById('modal-timer');
-      const modalItems = document.getElementById('modal-items');
-
-      modalTitle.textContent = category.toUpperCase();
-      modalTimerEl.textContent = 'Restocks in: ' + categoryData.countdown;
-      modalItems.innerHTML = categoryData.items.map(item =>
+      const modal = document.getElementById('modal-overlay');
+      document.getElementById('modal-title').textContent = category.toUpperCase();
+      document.getElementById('modal-timer').textContent = 'Restocks in: ' + categoryData.countdown;
+      document.getElementById('modal-restocked').textContent = 'Last Restocked: ' + new Date(categoryData.last_stocked).toLocaleString();
+      document.getElementById('modal-items').innerHTML = categoryData.items.map(item =>
         `<div class="item">${item.emoji || ''} ${item.name}: ${item.quantity}</div>`
       ).join('');
 
-      modalOverlay.classList.add('active');
-
-      // Focus for accessibility
-      modalOverlay.focus();
+      modal.classList.add('active');
     }
 
     function closeModal() {
       modalCategory = null;
       modalCountdown = 0;
-
-      const modalOverlay = document.getElementById('modal-overlay');
-      modalOverlay.classList.remove('active');
+      document.getElementById('modal-overlay').classList.remove('active');
     }
 
-    // Close modal on overlay click or close button
     document.getElementById('modal-overlay').addEventListener('click', (e) => {
       if (e.target.id === 'modal-overlay' || e.target.id === 'modal-close') {
         closeModal();
       }
     });
 
-    // Close modal on Escape key
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        closeModal();
-      }
+      if (e.key === 'Escape') closeModal();
     });
 
     async function start() {
       const data = await fetchData();
       render(data);
-
       setInterval(tickTimers, TIMER_TICK);
-
       setInterval(async () => {
-        const freshData = await fetchData();
-        render(freshData);
+        const fresh = await fetchData();
+        render(fresh);
       }, FETCH_INTERVAL);
     }
 
