@@ -55,7 +55,6 @@
   .out-stock {
     color: #ff8787;
   }
-  /* Modal */
   .modal {
     display: none;
     position: fixed;
@@ -87,170 +86,166 @@
 </style>
 </head>
 <body>
-  <h1>🌱 Grow-A-Garden Tracker</h1>
-  <div id="last-updated"></div>
-  <div id="sections"></div>
+<h1>🌱 Grow-A-Garden Tracker</h1>
+<div id="last-updated"></div>
+<div id="sections"></div>
 
-  <div class="modal" id="itemModal">
-    <div class="modal-close" onclick="document.getElementById('itemModal').style.display='none'">&times;</div>
-    <h3 id="modalTitle"></h3>
-    <div id="modalContent"></div>
-  </div>
+<div class="modal" id="itemModal">
+  <div class="modal-close" onclick="document.getElementById('itemModal').style.display='none'">&times;</div>
+  <h3 id="modalTitle"></h3>
+  <div id="modalContent"></div>
+</div>
 
-  <script>
-    const API_URL = '/api/stock';
-    const FETCH_INTERVAL = 1000;
-    let lastSeen = JSON.parse(localStorage.getItem('lastSeen') || '{}');
-    let currentData = null;
+<script>
+const API_URL = '/api/stock';
+const FETCH_INTERVAL = 1000;
+let lastSeen = JSON.parse(localStorage.getItem('lastSeen') || '{}');
+let currentData = null;
+let notifiedItems = new Set();
 
-    // Fixed lists for Gear and Seed
-    const fixedGearItems = [
-      "Master Sprinkler",
-      "Cleaning Spray",
-      "Favorite Tool",
-      "Harvest Tool",
-      "Friendship Pot",
-      "Godly Sprinkler",
-      "Advanced Sprinkler",
-      "Basic Sprinkler",
-      "Trowel",
-      "Recall Wrench",
-      "Watering Can"
-    ];
+const RARE_ITEM_NAMES = ["Beanstalk", "Ember Lily", "Sugar Apple", "Burning Bud", "Carrot"];
+const fixedGearItems = [
+  "Master Sprinkler", "Cleaning Spray", "Favorite Tool", "Harvest Tool", "Friendship Pot",
+  "Godly Sprinkler", "Advanced Sprinkler", "Basic Sprinkler",
+  "Trowel", "Recall Wrench", "Watering Can"
+];
+const fixedSeedItems = [
+  "Carrot", "Strawberry", "Blueberry", "Orange Tulip", "Tomato", "Daffodil", "Watermelon",
+  "Pumpkin", "Apple", "Bamboo", "Coconut", "Cactus", "Dragon Fruit", "Mango", "Grape",
+  "Mushroom", "Pepper", "Cacao", "Beanstalk", "Ember Lily", "Sugar Apple", "Burning Bud"
+];
 
-    const fixedSeedItems = [
-      "Carrot",
-      "Strawberry",
-      "Blueberry",
-      "Orange Tulip",
-      "Tomato",
-      "Daffodil",
-      "Watermelon",
-      "Pumpkin",
-      "Apple",
-      "Bamboo",
-      "Coconut",
-      "Cactus",
-      "Dragon Fruit",
-      "Mango",
-      "Grape",
-      "Mushroom",
-      "Pepper",
-      "Cacao",
-      "Beanstalk",
-      "Ember Lily",
-      "Sugar Apple",
-      "Burning Bud"
-    ];
+function secondsToHMS(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  return `${h ? h + 'h ' : ''}${m ? m + 'm ' : ''}${s}s`;
+}
 
-    function secondsToHMS(seconds) {
-      const h = Math.floor(seconds / 3600);
-      const m = Math.floor((seconds % 3600) / 60);
-      const s = Math.floor(seconds % 60);
-      return `${h ? h + 'h ' : ''}${m ? m + 'm ' : ''}${s}s`;
-    }
+function timeAgo(timestamp) {
+  if (!timestamp) return 'never';
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  return secondsToHMS(seconds);
+}
 
-    function timeAgo(timestamp) {
-      if (!timestamp) return 'never';
-      const seconds = Math.floor((Date.now() - timestamp) / 1000);
-      return secondsToHMS(seconds);
-    }
+function showNotification(message) {
+  if (Notification.permission === "granted") {
+    new Notification("🌟 Rare Seed Alert", {
+      body: message,
+      icon: "https://em-content.zobj.net/source/twitter/376/glowing-star_1f31f.png"
+    });
+  }
+}
 
-    async function fetchData() {
-      try {
-        const res = await fetch(API_URL);
-        if (!res.ok) throw new Error("Status: " + res.status);
-        const json = await res.json();
-        return json.data;
-      } catch (err) {
-        console.error('Fetch error:', err);
-        return null;
+function checkRareItems(data) {
+  if (!data) return;
+  const categories = Object.keys(data);
+  for (const category of categories) {
+    const items = data[category]?.items || [];
+    for (const item of items) {
+      if (RARE_ITEM_NAMES.includes(item.name) && !notifiedItems.has(item.name)) {
+        showNotification(`${item.name} is in stock! (${item.quantity} available)`);
+        notifiedItems.add(item.name);
       }
     }
+  }
+}
 
-    function updateLastSeen(category, items) {
-      const now = Date.now();
-      const prefix = category + ':';
-      items.forEach(item => {
-        lastSeen[prefix + item.name] = now;
-      });
-      localStorage.setItem('lastSeen', JSON.stringify(lastSeen));
+function updateLastSeen(category, items) {
+  const now = Date.now();
+  const prefix = category + ':';
+  items.forEach(item => {
+    lastSeen[prefix + item.name] = now;
+  });
+  localStorage.setItem('lastSeen', JSON.stringify(lastSeen));
+}
+
+function showModal(category) {
+  const modal = document.getElementById('itemModal');
+  const title = document.getElementById('modalTitle');
+  const content = document.getElementById('modalContent');
+  const group = currentData[category];
+  const prefix = category + ':';
+  let allItems = [];
+
+  if (category === 'gear') allItems = fixedGearItems;
+  else if (category === 'seed') allItems = fixedSeedItems;
+  else {
+    allItems = Array.from(new Set([
+      ...Object.keys(lastSeen).filter(k => k.startsWith(prefix)).map(k => k.slice(prefix.length)),
+      ...group.items.map(i => i.name)
+    ]));
+  }
+
+  const nowStock = new Map(group.items.map(i => [i.name, i]));
+  const html = allItems.map(name => {
+    const item = nowStock.get(name);
+    if (item && item.quantity > 0) {
+      return `<div class="item in-stock">${item.emoji || ''} ${name}: ✅ x${item.quantity}</div>`;
+    } else {
+      const last = lastSeen[prefix + name];
+      return `<div class="item out-stock">${name}: ❌ Last seen ${timeAgo(last)} ago</div>`;
     }
+  }).join('');
 
-    function showModal(category) {
-      const modal = document.getElementById('itemModal');
-      const title = document.getElementById('modalTitle');
-      const content = document.getElementById('modalContent');
-      const group = currentData[category];
-      const prefix = category + ':';
+  title.textContent = category.toUpperCase() + ' ITEMS';
+  content.innerHTML = html;
+  modal.style.display = 'block';
+}
 
-      let allItems = [];
+function render(data) {
+  if (!data) return;
+  currentData = data;
+  const container = document.getElementById('sections');
+  const updated = document.getElementById('last-updated');
+  container.innerHTML = '';
+  updated.textContent = 'Last Updated: ' + new Date(data.updated_at || Date.now()).toLocaleTimeString();
 
-      if (category === 'gear') {
-        allItems = fixedGearItems;
-      } else if (category === 'seed') {
-        allItems = fixedSeedItems;
-      } else {
-        allItems = Array.from(new Set([
-          ...Object.keys(lastSeen).filter(k => k.startsWith(prefix)).map(k => k.slice(prefix.length)),
-          ...group.items.map(i => i.name)
-        ]));
-      }
+  const categories = ['gear', 'egg', 'seed', 'honey', 'cosmetics'];
+  categories.forEach(category => {
+    const group = data[category];
+    if (!group) return;
+    updateLastSeen(category, group.items);
 
-      const nowStock = new Map(group.items.map(i => [i.name, i]));
+    const section = document.createElement('div');
+    section.className = 'section';
+    section.innerHTML = `
+      <h2>${category.toUpperCase()}</h2>
+      <div class="timer">Restocks in: ${group.countdown}</div>
+      ${group.items.map(i => `<div class="item in-stock">${i.emoji || ''} ${i.name}: ✅ x${i.quantity}</div>`).join('')}
+    `;
+    section.addEventListener('click', () => showModal(category));
+    container.appendChild(section);
+  });
+}
 
-      const html = allItems.map(name => {
-        const item = nowStock.get(name);
-        if (item && item.quantity > 0) {
-          return `<div class="item in-stock">${item.emoji || ''} ${name}: ✅ x${item.quantity}</div>`;
-        } else {
-          const last = lastSeen[prefix + name];
-          return `<div class="item out-stock">${name}: ❌ Last seen ${timeAgo(last)} ago</div>`;
-        }
-      }).join('');
+async function start() {
+  if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+    Notification.requestPermission();
+  }
+  const data = await fetchData();
+  render(data);
+  checkRareItems(data);
+  setInterval(async () => {
+    const newData = await fetchData();
+    render(newData);
+    checkRareItems(newData);
+  }, FETCH_INTERVAL);
+}
 
-      title.textContent = category.toUpperCase() + ' ITEMS';
-      content.innerHTML = html;
-      modal.style.display = 'block';
-    }
+async function fetchData() {
+  try {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error("Status: " + res.status);
+    const json = await res.json();
+    return json.data;
+  } catch (err) {
+    console.error('Fetch error:', err);
+    return null;
+  }
+}
 
-    function render(data) {
-      if (!data) return;
-      currentData = data;
-      const container = document.getElementById('sections');
-      const updated = document.getElementById('last-updated');
-      container.innerHTML = '';
-      updated.textContent = 'Last Updated: ' + new Date(data.updated_at || Date.now()).toLocaleTimeString();
-
-      const categories = ['gear', 'egg', 'seed', 'honey', 'cosmetics'];
-
-      categories.forEach(category => {
-        const group = data[category];
-        if (!group) return;
-        updateLastSeen(category, group.items);
-
-        const section = document.createElement('div');
-        section.className = 'section';
-        section.innerHTML = `
-          <h2>${category.toUpperCase()}</h2>
-          <div class="timer">Restocks in: ${group.countdown}</div>
-          ${group.items.map(i => `<div class="item in-stock">${i.emoji || ''} ${i.name}: ✅ x${i.quantity}</div>`).join('')}
-        `;
-        section.addEventListener('click', () => showModal(category));
-        container.appendChild(section);
-      });
-    }
-
-    async function start() {
-      const data = await fetchData();
-      render(data);
-      setInterval(async () => {
-        const newData = await fetchData();
-        render(newData);
-      }, FETCH_INTERVAL);
-    }
-
-    start();
-  </script>
+start();
+</script>
 </body>
 </html>
