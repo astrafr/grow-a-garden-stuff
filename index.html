@@ -213,7 +213,6 @@
     btnSeeds.classList.add('active');
     btnGear.classList.remove('active');
     render(currentData);
-    resetCountdown();
   };
 
   btnGear.onclick = () => {
@@ -221,7 +220,6 @@
     btnGear.classList.add('active');
     btnSeeds.classList.remove('active');
     render(currentData);
-    resetCountdown();
   };
 
   toggleOutStockBtn.onclick = () => {
@@ -293,7 +291,7 @@
     return `${h ? h + 'h ' : ''}${m ? m + 'm ' : ''}${s}s`;
   }
 
-  // Find minimum restock_seconds from all items in the current category
+  // Get smallest restock_seconds from current category items
   function getCategoryRestockSeconds(data, category) {
     if (!data || !data[category] || !data[category].items) return 0;
     let times = data[category].items
@@ -377,7 +375,7 @@
   }
 
   let restockSeconds = 0;
-  let countdownInterval = null;
+  let lastUpdateTimestamp = 0;
 
   async function updateData() {
     const data = await fetchData();
@@ -386,44 +384,72 @@
       restockTimerEl.textContent = '0';
       return;
     }
+    currentData = data;
+
+    // Save the timestamp we got the data
+    lastUpdateTimestamp = Date.now();
+
+    // Get the smallest restock_seconds for the current category
     restockSeconds = getCategoryRestockSeconds(data, currentCategory);
-    restockTimerEl.textContent = secondsToHMS(restockSeconds);
+
     render(data);
   }
 
-  function resetCountdown() {
-    if (countdownInterval) {
-      clearInterval(countdownInterval);
-      countdownInterval = null;
-    }
-    if (restockSeconds > 0) {
-      restockTimerEl.textContent = secondsToHMS(restockSeconds);
-      countdownInterval = setInterval(() => {
-        restockSeconds--;
-        if (restockSeconds < 0) {
-          updateData();
-        } else {
-          restockTimerEl.textContent = secondsToHMS(restockSeconds);
-        }
-      }, 1000);
-    } else {
+  function updateTimer() {
+    if (restockSeconds <= 0) {
       restockTimerEl.textContent = 'No upcoming restock';
+      return;
     }
+    // Calculate elapsed time since last update
+    const elapsed = Math.floor((Date.now() - lastUpdateTimestamp) / 1000);
+    let timeLeft = restockSeconds - elapsed;
+    if (timeLeft < 0) timeLeft = 0;
+    restockTimerEl.textContent = secondsToHMS(timeLeft);
   }
 
-  async function startApp() {
-    if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-      await Notification.requestPermission();
-    }
+  // Main loop: fetch data every second, update timer every second
+  async function mainLoop() {
     await updateData();
-    resetCountdown();
-    // Refresh data every 60 seconds to catch changes if countdown not triggered
+    updateTimer();
+
     setInterval(async () => {
       await updateData();
-    }, 60000);
+      updateTimer();
+    }, 1000);
+
+    // Also update the timer display every second in case fetch is slow
+    setInterval(() => {
+      updateTimer();
+    }, 1000);
   }
 
-  startApp();
+  btnSeeds.onclick = () => {
+    currentCategory = 'seed';
+    btnSeeds.classList.add('active');
+    btnGear.classList.remove('active');
+    if (currentData) render(currentData);
+  };
+
+  btnGear.onclick = () => {
+    currentCategory = 'gear';
+    btnGear.classList.add('active');
+    btnSeeds.classList.remove('active');
+    if (currentData) render(currentData);
+  };
+
+  toggleOutStockBtn.onclick = () => {
+    showOutStock = !showOutStock;
+    outStockEl.style.display = showOutStock ? 'block' : 'none';
+    toggleOutStockBtn.textContent = showOutStock ? 'Hide Out-of-Stock Items' : 'Show Out-of-Stock Items';
+  };
+
+  // Request notification permission at start
+  if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+    Notification.requestPermission();
+  }
+
+  mainLoop();
+
 </script>
 
 </body>
