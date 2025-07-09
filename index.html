@@ -300,30 +300,29 @@
     return catItems.some(i => i.quantity > 0);
   }
 
-  function startLiveTimer(seconds) {
-    clearInterval(liveTimerInterval);
-    liveTimerSeconds = seconds;
+ function startLiveTimer(seconds) {
+  clearInterval(liveTimerInterval);
+  liveTimerSeconds = seconds;
 
-    if (liveTimerSeconds === null || liveTimerSeconds <= 0) {
-      restockTimerEl.textContent = anyInStock(currentCategory, currentData)
-        ? "Currently fully stocked"
-        : "Waiting for restock...";
-      return;
-    }
-
-    restockTimerEl.textContent = formatTimeLeft(liveTimerSeconds);
-
-    liveTimerInterval = setInterval(() => {
-      liveTimerSeconds--;
-      if (liveTimerSeconds <= 0) {
-        clearInterval(liveTimerInterval);
-        restockTimerEl.textContent = "Restocking now...";
-        fetchAndRender();
-      } else {
-        restockTimerEl.textContent = formatTimeLeft(liveTimerSeconds);
-      }
-    }, 1000);
+  if (liveTimerSeconds === null || liveTimerSeconds < 0) {
+    restockTimerEl.textContent = ""; // show nothing if no timer
+    return;
   }
+
+  restockTimerEl.textContent = liveTimerSeconds;
+
+  liveTimerInterval = setInterval(() => {
+    liveTimerSeconds--;
+    if (liveTimerSeconds < 0) {
+      clearInterval(liveTimerInterval);
+      restockTimerEl.textContent = "0";
+      fetchAndRender(); // refresh data immediately
+    } else {
+      restockTimerEl.textContent = liveTimerSeconds;
+    }
+  }, 1000);
+}
+
 
   function render(data) {
     if (!data) {
