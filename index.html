@@ -5,106 +5,100 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Grow-A-Garden Tracker</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
   body {
-    background: linear-gradient(135deg, #1a1a2e, #16213e);
-    color: #e0e0e0;
-    font-family: 'Montserrat', sans-serif;
+    background-color: #000;
+    color: #ddd;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 2rem 1rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
-    transition: background-color 0.3s ease;
   }
   h1 {
+    color: #bb80ff;
+    margin-bottom: 0.3rem;
     font-weight: 700;
-    color: #9b59b6;
-    margin-bottom: 0.2rem;
-    text-shadow: 0 0 8px #8e44adaa;
+    text-shadow: 0 0 8px #9b59b6;
   }
   #restock-timer {
     font-size: 3rem;
     font-weight: 700;
-    color: #8e44ad;
-    text-shadow: 0 0 12px #a64ca6cc;
+    color: #a474ff;
     margin-bottom: 2rem;
     min-width: 280px;
     text-align: center;
+    text-shadow: 0 0 12px #8e44ad;
   }
   #buttons {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
   }
   button {
     background: transparent;
     border: 2px solid #9b59b6;
-    color: #bb86fc;
+    color: #bb80ff;
     font-weight: 600;
     font-size: 1.1rem;
-    padding: 0.6rem 1.8rem;
+    padding: 0.5rem 1.5rem;
     margin: 0 10px;
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 6px #7e3dbb33;
+    transition: all 0.25s ease;
   }
   button:hover {
     background: #9b59b6;
-    color: #fff;
-    box-shadow: 0 0 18px #9b59b6cc;
+    color: #000;
   }
   button.active {
     background: #8e44ad;
     color: #fff;
-    box-shadow: 0 0 24px #8e44adcc;
     border-color: #8e44ad;
+    box-shadow: 0 0 10px #8e44adaa;
   }
   #content {
-    background: #222239cc;
-    border-radius: 16px;
-    box-shadow: 0 0 30px 5px #7e3dbb77;
-    width: 100%;
-    max-width: 640px;
+    background-color: #1a0d38;
+    border-radius: 12px;
     padding: 1rem 2rem;
+    width: 100%;
+    max-width: 600px;
     font-size: 1.15rem;
+    box-shadow: 0 0 20px #8e44ad99;
     user-select: none;
   }
   .item {
     display: flex;
     justify-content: space-between;
-    border-bottom: 1px solid #4b3a71;
-    padding: 0.7rem 0;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid #4b297b;
   }
   .item:last-child {
     border-bottom: none;
   }
   .in-stock {
-    color: #58d68d;
+    color: #7df57d;
     font-weight: 700;
   }
   .out-stock {
-    color: #e74c3c;
+    color: #ff7777;
     font-style: italic;
   }
   #last-updated {
-    margin-top: 1.4rem;
-    font-size: 0.95rem;
+    margin-top: 1rem;
+    font-size: 0.9rem;
     font-style: italic;
+    color: #b594ff;
     text-align: center;
-    color: #b294d9cc;
     user-select: none;
   }
-  /* Shake animation */
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
-    20%, 60% { transform: translateX(-12px); }
-    40%, 80% { transform: translateX(12px); }
+    20%, 60% { transform: translateX(-10px); }
+    40%, 80% { transform: translateX(10px); }
   }
   .shake {
     animation: shake 0.5s ease-in-out;
   }
-  /* Red flash */
   .flash-red {
     background-color: #7e1a1a !important;
     transition: background-color 0.3s ease;
@@ -125,7 +119,7 @@
 <div id="last-updated"></div>
 
 <script>
-  const API_URL = 'https://gagstock.gleeze.com/grow-a-garden'; // Replace with your actual endpoint
+  const API_URL = 'https://gagstock.gleeze.com/grow-a-garden'; // Your API endpoint
   const FETCH_INTERVAL = 1000;
 
   const RARE_ITEMS = new Set([
@@ -261,8 +255,9 @@
 
   function render(data) {
     if (!data) {
-      contentEl.textContent = 'Failed to load stock.';
+      contentEl.textContent = '⚠️ Failed to load stock.';
       restockTimerEl.textContent = '';
+      lastUpdatedEl.textContent = '';
       return;
     }
     currentData = data;
@@ -339,5 +334,6 @@
 
   start();
 </script>
+
 </body>
 </html>
