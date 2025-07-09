@@ -3,15 +3,79 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Grow-A-Garden Tracker - Live Update Every Second</title>
+  <title>Grow-A-Garden Tracker - Live Every Second</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 2rem; background: #f4f4f4; color: #333; }
-    h1 { text-align: center; margin-bottom: 1rem; }
-    .section { background: white; padding: 1rem; margin-bottom: 1rem; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
-    .section h2 { margin-top: 0; }
-    .item { margin: 0.25rem 0; }
-    .timer { font-weight: bold; color: #006600; }
-    .error { color: red; font-weight: bold; margin-top: 1rem; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
+      color: #eee;
+      padding: 2rem;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 1.5rem;
+      text-shadow: 0 0 10px #00ff00;
+    }
+    #last-updated {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      color: #90ee90;
+    }
+    .section {
+      background-color: #1e1e1e;
+      border-radius: 12px;
+      padding: 1.5rem 2rem;
+      margin-bottom: 1.5rem;
+      width: 100%;
+      max-width: 700px;
+      box-shadow: 0 0 20px #00ff00aa;
+    }
+    .section h2 {
+      font-size: 2rem;
+      margin-top: 0;
+      margin-bottom: 0.75rem;
+      color: #00ff00;
+      text-shadow: 0 0 5px #00ff00bb;
+    }
+    .item {
+      font-size: 1.3rem;
+      margin: 0.3rem 0;
+    }
+    .timer {
+      font-weight: 700;
+      color: #aaffaa;
+      text-shadow: 0 0 8px #aaffaacc;
+    }
+    .error {
+      color: #ff5555;
+      font-weight: 700;
+      margin-top: 1rem;
+      font-size: 1.2rem;
+      text-shadow: 0 0 5px #ff5555bb;
+    }
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem;
+      }
+      .section {
+        padding: 1rem;
+        max-width: 100%;
+      }
+      h1 {
+        font-size: 2rem;
+      }
+      .section h2 {
+        font-size: 1.5rem;
+      }
+      .item {
+        font-size: 1rem;
+      }
+    }
   </style>
 </head>
 <body>
