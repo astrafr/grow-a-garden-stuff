@@ -10,7 +10,7 @@
     color: #ddd;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
-    padding: 2rem 1rem;
+    padding: 1.5rem 1rem 3rem;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -18,7 +18,7 @@
   }
   h1 {
     color: #bb80ff;
-    margin-bottom: 0.3rem;
+    margin: 0 0 0.3rem;
     font-weight: 700;
     text-shadow: 0 0 8px #9b59b6;
   }
@@ -26,7 +26,7 @@
     font-size: 3rem;
     font-weight: 700;
     color: #a474ff;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     min-width: 280px;
     text-align: center;
     text-shadow: 0 0 12px #8e44ad;
@@ -56,15 +56,39 @@
     border-color: #8e44ad;
     box-shadow: 0 0 10px #8e44adaa;
   }
+  #toggle-out-stock {
+    margin-bottom: 1rem;
+    border-color: #bb80ff;
+    color: #bb80ff;
+  }
+  #toggle-out-stock:hover {
+    background: #bb80ff;
+    color: #000;
+  }
+  #content-wrapper {
+    display: flex;
+    gap: 2rem;
+    width: 100%;
+    max-width: 800px;
+  }
   #content {
     background-color: #1a0d38;
     border-radius: 12px;
     padding: 1rem 2rem;
-    width: 100%;
-    max-width: 600px;
+    flex-grow: 1;
     font-size: 1.15rem;
     box-shadow: 0 0 20px #8e44ad99;
     user-select: none;
+  }
+  #out-stock-list {
+    background-color: #2a1a56;
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    width: 280px;
+    font-size: 1rem;
+    box-shadow: 0 0 20px #6e2ecccc;
+    user-select: none;
+    display: none; /* hidden by default */
   }
   .item {
     display: flex;
@@ -115,7 +139,13 @@
   <button id="btn-gear">Gear</button>
 </div>
 
-<div id="content">Loading...</div>
+<button id="toggle-out-stock">Show Out-of-Stock Items</button>
+
+<div id="content-wrapper">
+  <div id="content">Loading...</div>
+  <div id="out-stock-list"></div>
+</div>
+
 <div id="last-updated"></div>
 
 <script>
@@ -154,13 +184,16 @@
   let lastSeenTimestamps = JSON.parse(localStorage.getItem('lastSeen') || '{}');
 
   const contentEl = document.getElementById('content');
+  const outStockEl = document.getElementById('out-stock-list');
   const lastUpdatedEl = document.getElementById('last-updated');
   const restockTimerEl = document.getElementById('restock-timer');
   const btnSeeds = document.getElementById('btn-seeds');
   const btnGear = document.getElementById('btn-gear');
+  const toggleOutStockBtn = document.getElementById('toggle-out-stock');
 
   let currentCategory = 'seed';
   let currentData = null;
+  let showOutStock = false;
 
   btnSeeds.onclick = () => {
     currentCategory = 'seed';
@@ -174,6 +207,12 @@
     btnGear.classList.add('active');
     btnSeeds.classList.remove('active');
     render(currentData);
+  };
+
+  toggleOutStockBtn.onclick = () => {
+    showOutStock = !showOutStock;
+    outStockEl.style.display = showOutStock ? 'block' : 'none';
+    toggleOutStockBtn.textContent = showOutStock ? 'Hide Out-of-Stock Items' : 'Show Out-of-Stock Items';
   };
 
   function timeAgo(ts) {
@@ -259,16 +298,18 @@
       contentEl.textContent = '⚠️ Failed to load stock.';
       restockTimerEl.textContent = '';
       lastUpdatedEl.textContent = '';
+      outStockEl.style.display = 'none';
+      toggleOutStockBtn.style.display = 'none';
       return;
     }
     currentData = data;
 
     const nextRestock = getNextRestockSeconds(data);
-    if (nextRestock !== null) {
-      restockTimerEl.textContent = formatTimeLeft(nextRestock);
-    } else {
-      restockTimerEl.textContent = 'No upcoming restocks';
-    }
+    restockTimerEl.textContent = nextRestock !== null
+      ? formatTimeLeft(nextRestock)
+      : 'No upcoming restocks';
+
+    toggleOutStockBtn.style.display = 'inline-block';
 
     let itemsToShow = [];
     if (currentCategory === 'gear') {
@@ -295,14 +336,22 @@
 
     updateLastSeen(currentCategory, itemsToShow);
 
-    contentEl.innerHTML = itemsToShow.map(item => {
-      if (item.quantity > 0) {
-        return `<div class="item in-stock">${item.name} <span>✅ In stock x${item.quantity}</span></div>`;
-      } else {
-        const last = lastSeenTimestamps[currentCategory + ':' + item.name];
-        return `<div class="item out-stock">${item.name} <span>❌ Out of stock (last seen ${timeAgo(last)})</span></div>`;
-      }
-    }).join('');
+    // Separate in-stock and out-of-stock
+    const inStock = itemsToShow.filter(i => i.quantity > 0);
+    const outStock = itemsToShow.filter(i => i.quantity <= 0);
+
+    contentEl.innerHTML = inStock.length
+      ? inStock.map(item => `<div class="item in-stock">${item.name} <span>✅ In stock x${item.quantity}</span></div>`).join('')
+      : '<div>No items in stock.</div>';
+
+    outStockEl.innerHTML = outStock.length
+      ? outStock.map(item => {
+          const last = lastSeenTimestamps[currentCategory + ':' + item.name];
+          return `<div class="item out-stock">${item.name} <span>❌ Last seen ${timeAgo(last)}</span></div>`;
+        }).join('')
+      : '<div>No out-of-stock items.</div>';
+
+    if (!showOutStock) outStockEl.style.display = 'none';
 
     lastUpdatedEl.textContent = 'Last updated: ' + new Date(data.updated_at || Date.now()).toLocaleTimeString();
 
