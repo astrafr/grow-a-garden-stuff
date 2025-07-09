@@ -149,9 +149,8 @@
 <div id="last-updated"></div>
 
 <script>
-  // Use corsproxy.io to bypass CORS issues
   const API_URL = 'https://corsproxy.io/?https://gagstock.gleeze.com/grow-a-garden';
-  const FETCH_INTERVAL = 1000;
+  const FETCH_INTERVAL = 5000; // fetch data every 5 seconds to reduce load
 
   const RARE_ITEMS = new Set([
     "Beanstalk",
@@ -194,6 +193,8 @@
   let currentCategory = 'seed';
   let currentData = null;
   let showOutStock = false;
+  let liveTimerSeconds = null;
+  let liveTimerInterval = null;
 
   btnSeeds.onclick = () => {
     currentCategory = 'seed';
@@ -299,6 +300,33 @@
     return catItems.some(i => i.quantity > 0);
   }
 
+  // Live timer update function
+  function startLiveTimer(seconds) {
+    clearInterval(liveTimerInterval);
+    liveTimerSeconds = seconds;
+
+    if (liveTimerSeconds === null || liveTimerSeconds <= 0) {
+      restockTimerEl.textContent = anyInStock(currentCategory, currentData)
+        ? "Currently fully stocked"
+        : "Waiting for restock...";
+      return;
+    }
+
+    restockTimerEl.textContent = formatTimeLeft(liveTimerSeconds);
+
+    liveTimerInterval = setInterval(() => {
+      liveTimerSeconds--;
+      if (liveTimerSeconds <= 0) {
+        clearInterval(liveTimerInterval);
+        restockTimerEl.textContent = "Restocking now...";
+        // Force a fresh fetch immediately:
+        fetchAndRender();
+      } else {
+        restockTimerEl.textContent = formatTimeLeft(liveTimerSeconds);
+      }
+    }, 1000);
+  }
+
   function render(data) {
     if (!data) {
       contentEl.textContent = '⚠️ Failed to load stock.';
@@ -311,13 +339,7 @@
     currentData = data;
 
     const nextRestock = getNextRestockSeconds(data);
-    if (nextRestock !== null && nextRestock > 0) {
-      restockTimerEl.textContent = formatTimeLeft(nextRestock);
-    } else if (anyInStock(currentCategory, data)) {
-      restockTimerEl.textContent = "Currently fully stocked";
-    } else {
-      restockTimerEl.textContent = "Waiting for restock...";
-    }
+    startLiveTimer(nextRestock);
 
     toggleOutStockBtn.style.display = 'inline-block';
 
@@ -380,16 +402,18 @@
     }
   }
 
+  async function fetchAndRender() {
+    const data = await fetchData();
+    render(data);
+  }
+
   async function start() {
     if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
       await Notification.requestPermission();
     }
-    async function update() {
-      const data = await fetchData();
-      render(data);
-    }
-    await update();
-    setInterval(update, FETCH_INTERVAL);
+    await fetchAndRender();
+    // Refresh full data every FETCH_INTERVAL (5s) to catch new items
+    setInterval(fetchAndRender, FETCH_INTERVAL);
   }
 
   start();
