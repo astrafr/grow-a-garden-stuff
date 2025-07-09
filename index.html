@@ -11,116 +11,53 @@
       color: #ddd;
       padding: 2rem;
       margin: 0;
-      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
-
     h1 {
       font-size: 3rem;
       margin-bottom: 1.5rem;
       color: #b388eb;
       text-shadow: 0 0 8px #a57adecc;
     }
-
     #last-updated {
       font-size: 1.2rem;
       margin-bottom: 1rem;
       color: #c8a2ff;
     }
-
     .section {
       background-color: #1e0f44;
       border-radius: 12px;
-      padding: 1.5rem 2rem;
+      padding: 1.5rem;
       margin-bottom: 1.5rem;
       width: 100%;
       max-width: 700px;
       box-shadow: 0 0 30px 8px rgba(180, 125, 255, 0.7);
-      transition: 0.3s;
       cursor: pointer;
     }
-
     .section h2 {
       font-size: 2rem;
       color: #c8a2ff;
-      margin: 0;
     }
-
     .timer {
       font-weight: 600;
       color: #d1b3ff;
-      margin-top: 0.5rem;
+      margin-bottom: 1rem;
     }
-
-    .error {
-      color: #ff6f91;
-      font-weight: 700;
-      margin-top: 1rem;
-      font-size: 1.2rem;
-      text-shadow: 0 0 8px #ff6f91bb;
-    }
-
-    /* Modal */
-    #modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: rgba(0,0,0,0.8);
-      backdrop-filter: blur(5px);
-      z-index: 9999;
-      justify-content: center;
-      align-items: center;
-    }
-
-    #modal-overlay.active {
-      display: flex;
-    }
-
-    #modal {
-      background-color: #1e0f44;
-      border-radius: 12px;
-      padding: 2rem 3rem;
-      max-width: 600px;
-      width: 90%;
-      box-shadow: 0 0 50px 15px rgba(180, 125, 255, 0.9);
-      color: #e0d7ff;
-      max-height: 80vh;
-      overflow-y: auto;
-      position: relative;
-    }
-
-    #modal h2 {
-      margin-top: 0;
-      color: #c8a2ff;
-      font-size: 2rem;
-    }
-
-    #modal .item {
+    .item {
       font-size: 1.1rem;
-      margin: 0.4rem 0;
+      margin: 0.3rem 0;
     }
-
     .in-stock {
       color: #8effa3;
     }
-
     .out-stock {
       color: #ff8787;
     }
-
-    #modal-close {
-      position: absolute;
-      top: 15px;
-      right: 20px;
-      font-size: 2rem;
-      color: #c8a2ff;
-      cursor: pointer;
-    }
-
-    #modal-close:hover {
-      color: #fff;
+    .hidden-items {
+      display: none;
+      margin-top: 1rem;
     }
   </style>
 </head>
@@ -128,19 +65,9 @@
   <h1>🌱 Grow-A-Garden Tracker</h1>
   <div id="last-updated"></div>
   <div id="sections"></div>
-  <div id="error" class="error"></div>
-
-  <!-- Modal -->
-  <div id="modal-overlay">
-    <div id="modal">
-      <span id="modal-close">&times;</span>
-      <h2 id="modal-title"></h2>
-      <div id="modal-items"></div>
-    </div>
-  </div>
 
   <script>
-    const API_URL = '/api/stock'; // Proxy or backend endpoint
+    const API_URL = '/api/stock';
     const FETCH_INTERVAL = 1000;
     let lastSeen = JSON.parse(localStorage.getItem('lastSeen') || '{}');
 
@@ -161,10 +88,9 @@
         const res = await fetch(API_URL);
         if (!res.ok) throw new Error("Status: " + res.status);
         const json = await res.json();
-        document.getElementById('error').textContent = '';
         return json.data;
       } catch (err) {
-        document.getElementById('error').textContent = '⚠️ Failed to load stock. It might be blocked (CORS).';
+        console.error('Fetch error:', err);
         return null;
       }
     }
@@ -190,67 +116,54 @@
       categories.forEach(category => {
         const group = data[category];
         if (!group) return;
-
         updateLastSeen(category, group.items);
+
+        const prefix = category + ':';
+        const currentNames = new Set(group.items.map(i => i.name));
+        const knownItems = new Set([
+          ...Object.keys(lastSeen)
+            .filter(k => k.startsWith(prefix))
+            .map(k => k.slice(prefix.length)),
+          ...Array.from(currentNames)
+        ]);
 
         const section = document.createElement('div');
         section.className = 'section';
         section.innerHTML = `
           <h2>${category.toUpperCase()}</h2>
           <div class="timer">Restocks in: ${group.countdown}</div>
+          <div class="visible-items">
+            ${group.items.map(i => `<div class="item in-stock">${i.emoji || ''} ${i.name}: ✅ x${i.quantity}</div>`).join('')}
+          </div>
+          <div class="hidden-items" id="extra-${category}"></div>
         `;
-        section.addEventListener('click', () => openModal(category, data));
+
+        section.addEventListener('click', () => {
+          const extra = document.getElementById(`extra-${category}`);
+          if (extra.innerHTML === '') {
+            extra.innerHTML = Array.from(knownItems).filter(name => {
+              return !group.items.some(i => i.name === name);
+            }).map(name => {
+              const emoji = '';
+              const last = lastSeen[prefix + name];
+              return `<div class="item out-stock">${emoji} ${name}: ❌ Last seen ${timeAgo(last)} ago</div>`;
+            }).join('');
+            extra.style.display = 'block';
+          } else {
+            extra.style.display = extra.style.display === 'none' ? 'block' : 'none';
+          }
+        });
+
         container.appendChild(section);
       });
     }
-
-    function openModal(category, data) {
-      const group = data[category];
-      const prefix = category + ':';
-      const stockItems = {};
-      group.items.forEach(item => {
-        stockItems[item.name] = item;
-      });
-
-      const allItems = new Set([
-        ...Object.keys(lastSeen).filter(k => k.startsWith(prefix)).map(k => k.slice(prefix.length)),
-        ...group.items.map(i => i.name)
-      ]);
-
-      const container = document.getElementById('modal-items');
-      container.innerHTML = '';
-
-      Array.from(allItems).forEach(name => {
-        const item = stockItems[name];
-        const emoji = item?.emoji || '';
-        const quantity = item?.quantity ?? 0;
-        const last = lastSeen[prefix + name];
-
-        if (item && quantity > 0) {
-          container.innerHTML += `<div class="item in-stock">${emoji} ${name}: ✅ In stock (x${quantity})</div>`;
-        } else if (last) {
-          container.innerHTML += `<div class="item out-stock">${emoji} ${name}: ❌ Last seen ${timeAgo(last)} ago</div>`;
-        }
-      });
-
-      document.getElementById('modal-title').textContent = category.toUpperCase();
-      document.getElementById('modal-overlay').classList.add('active');
-    }
-
-    document.getElementById('modal-close').onclick = () => {
-      document.getElementById('modal-overlay').classList.remove('active');
-    };
-
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') document.getElementById('modal-overlay').classList.remove('active');
-    });
 
     async function start() {
       const data = await fetchData();
       render(data);
       setInterval(async () => {
-        const fresh = await fetchData();
-        render(fresh);
+        const newData = await fetchData();
+        render(newData);
       }, FETCH_INTERVAL);
     }
 
