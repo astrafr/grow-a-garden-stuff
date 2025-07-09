@@ -371,38 +371,26 @@
     }
   }
 
-  let restockSeconds = 0;
-  let countdownInterval = null;
-
   async function updateData() {
     const data = await fetchData();
     if (!data) {
-      restockSeconds = 0;
-      restockTimerEl.textContent = restockSeconds;
+      restockTimerEl.textContent = '0';
       return;
     }
-    restockSeconds = getNextRestockSeconds(data);
+    const restockSeconds = getNextRestockSeconds(data);
     restockTimerEl.textContent = restockSeconds;
     render(data);
   }
 
   function startCountdown() {
-    if (countdownInterval) clearInterval(countdownInterval);
-    countdownInterval = setInterval(async () => {
-      restockSeconds--;
-      if (restockSeconds < 0) {
-        await updateData();
-      } else {
-        restockTimerEl.textContent = restockSeconds;
-      }
-    }, 1000);
+    updateData(); // initial fetch & render
+    setInterval(updateData, 1000); // fetch fresh data every 1 sec
   }
 
   async function startApp() {
     if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
       await Notification.requestPermission();
     }
-    await updateData();
     startCountdown();
   }
 
