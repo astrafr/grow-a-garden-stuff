@@ -39,31 +39,19 @@
       max-width: 700px;
       box-shadow: 0 0 30px 8px rgba(180, 125, 255, 0.7);
       transition: 0.3s;
+      cursor: pointer;
     }
 
     .section h2 {
       font-size: 2rem;
       color: #c8a2ff;
+      margin: 0;
     }
 
     .timer {
       font-weight: 600;
       color: #d1b3ff;
-      margin-bottom: 0.5rem;
-    }
-
-    .item {
-      font-size: 1.1rem;
-      margin: 0.3rem 0;
-      color: #e0d7ff;
-    }
-
-    .in-stock {
-      color: #8effa3;
-    }
-
-    .out-stock {
-      color: #ff8787;
+      margin-top: 0.5rem;
     }
 
     .error {
@@ -74,18 +62,65 @@
       text-shadow: 0 0 8px #ff6f91bb;
     }
 
-    @media (max-width: 600px) {
-      body {
-        padding: 1rem;
-      }
+    /* Modal */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0,0,0,0.8);
+      backdrop-filter: blur(5px);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
 
-      h1 {
-        font-size: 2rem;
-      }
+    #modal-overlay.active {
+      display: flex;
+    }
 
-      .section h2 {
-        font-size: 1.5rem;
-      }
+    #modal {
+      background-color: #1e0f44;
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: 0 0 50px 15px rgba(180, 125, 255, 0.9);
+      color: #e0d7ff;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    #modal h2 {
+      margin-top: 0;
+      color: #c8a2ff;
+      font-size: 2rem;
+    }
+
+    #modal .item {
+      font-size: 1.1rem;
+      margin: 0.4rem 0;
+    }
+
+    .in-stock {
+      color: #8effa3;
+    }
+
+    .out-stock {
+      color: #ff8787;
+    }
+
+    #modal-close {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      font-size: 2rem;
+      color: #c8a2ff;
+      cursor: pointer;
+    }
+
+    #modal-close:hover {
+      color: #fff;
     }
   </style>
 </head>
@@ -95,8 +130,17 @@
   <div id="sections"></div>
   <div id="error" class="error"></div>
 
+  <!-- Modal -->
+  <div id="modal-overlay">
+    <div id="modal">
+      <span id="modal-close">&times;</span>
+      <h2 id="modal-title"></h2>
+      <div id="modal-items"></div>
+    </div>
+  </div>
+
   <script>
-    const API_URL = '/api/stock'; // replace with your proxy if needed
+    const API_URL = '/api/stock'; // Proxy or backend endpoint
     const FETCH_INTERVAL = 1000;
     let lastSeen = JSON.parse(localStorage.getItem('lastSeen') || '{}');
 
@@ -127,16 +171,10 @@
 
     function updateLastSeen(category, items) {
       const now = Date.now();
-      const keyPrefix = category + ':';
-      const currentNames = new Set();
-
+      const prefix = category + ':';
       items.forEach(item => {
-        const name = item.name;
-        currentNames.add(name);
-        lastSeen[keyPrefix + name] = now;
+        lastSeen[prefix + item.name] = now;
       });
-
-      // Save updates to localStorage
       localStorage.setItem('lastSeen', JSON.stringify(lastSeen));
     }
 
@@ -153,10 +191,6 @@
         const group = data[category];
         if (!group) return;
 
-        const keyPrefix = category + ':';
-        const nowInStock = {};
-        group.items.forEach(item => nowInStock[item.name] = item);
-
         updateLastSeen(category, group.items);
 
         const section = document.createElement('div');
@@ -164,40 +198,59 @@
         section.innerHTML = `
           <h2>${category.toUpperCase()}</h2>
           <div class="timer">Restocks in: ${group.countdown}</div>
-          <div class="items" id="items-${category}"></div>
         `;
-
-        const itemsDiv = section.querySelector(`#items-${category}`);
-
-        const allKnownItems = new Set([
-          ...Object.keys(lastSeen).filter(k => k.startsWith(keyPrefix)).map(k => k.slice(keyPrefix.length)),
-          ...group.items.map(i => i.name)
-        ]);
-
-        Array.from(allKnownItems).forEach(name => {
-          const item = nowInStock[name];
-          const emoji = item?.emoji || '';
-          const quantity = item?.quantity ?? 0;
-          const last = lastSeen[keyPrefix + name];
-
-          if (item && quantity > 0) {
-            itemsDiv.innerHTML += `<div class="item in-stock">${emoji} ${name}: ✅ In stock (x${quantity})</div>`;
-          } else if (last) {
-            itemsDiv.innerHTML += `<div class="item out-stock">${emoji} ${name}: ❌ Last seen ${timeAgo(last)} ago</div>`;
-          }
-        });
-
+        section.addEventListener('click', () => openModal(category, data));
         container.appendChild(section);
       });
     }
 
+    function openModal(category, data) {
+      const group = data[category];
+      const prefix = category + ':';
+      const stockItems = {};
+      group.items.forEach(item => {
+        stockItems[item.name] = item;
+      });
+
+      const allItems = new Set([
+        ...Object.keys(lastSeen).filter(k => k.startsWith(prefix)).map(k => k.slice(prefix.length)),
+        ...group.items.map(i => i.name)
+      ]);
+
+      const container = document.getElementById('modal-items');
+      container.innerHTML = '';
+
+      Array.from(allItems).forEach(name => {
+        const item = stockItems[name];
+        const emoji = item?.emoji || '';
+        const quantity = item?.quantity ?? 0;
+        const last = lastSeen[prefix + name];
+
+        if (item && quantity > 0) {
+          container.innerHTML += `<div class="item in-stock">${emoji} ${name}: ✅ In stock (x${quantity})</div>`;
+        } else if (last) {
+          container.innerHTML += `<div class="item out-stock">${emoji} ${name}: ❌ Last seen ${timeAgo(last)} ago</div>`;
+        }
+      });
+
+      document.getElementById('modal-title').textContent = category.toUpperCase();
+      document.getElementById('modal-overlay').classList.add('active');
+    }
+
+    document.getElementById('modal-close').onclick = () => {
+      document.getElementById('modal-overlay').classList.remove('active');
+    };
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') document.getElementById('modal-overlay').classList.remove('active');
+    });
+
     async function start() {
       const data = await fetchData();
       render(data);
-
       setInterval(async () => {
-        const data = await fetchData();
-        render(data);
+        const fresh = await fetchData();
+        render(fresh);
       }, FETCH_INTERVAL);
     }
 
