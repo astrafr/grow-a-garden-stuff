@@ -9,303 +9,243 @@
       background-color: #000;
       color: #a474ff;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      padding: 2rem 1rem 3rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      overflow-x: hidden;
+      padding: 2rem;
+      text-align: center;
     }
     h1 {
       color: #bb80ff;
-      margin-bottom: 0.3rem;
-      font-weight: 700;
       text-shadow: 0 0 8px #9b59b6;
-      user-select: none;
     }
-    #restock-timer {
-      font-size: 4rem;
-      font-weight: 700;
-      color: #a474ff;
-      margin-bottom: 0.5rem;
-      min-width: 280px;
-      text-align: center;
-      text-shadow: 0 0 12px #8e44ad;
-      user-select: none;
-    }
-    #since-restock-timer {
+    #restock-timer, #since-restock-timer {
       font-size: 1.5rem;
-      color: #ffd700;
-      margin-bottom: 1rem;
-      user-select: none;
-    }
-    #buttons {
-      margin-bottom: 1.5rem;
-    }
-    button {
-      background: transparent;
-      border: 2px solid #9b59b6;
-      color: #bb80ff;
-      font-weight: 600;
-      font-size: 1.1rem;
-      padding: 0.5rem 1.5rem;
-      margin: 0 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      user-select: none;
-    }
-    button:hover {
-      background: #9b59b6;
-      color: #000;
-    }
-    button.active {
-      background: #8e44ad;
-      color: #fff;
-      border-color: #8e44ad;
-      box-shadow: 0 0 10px #8e44adaa;
-    }
-    #toggle-out-stock {
-      margin-bottom: 1rem;
-      border-color: #bb80ff;
-      color: #bb80ff;
-    }
-    #toggle-out-stock:hover {
-      background: #bb80ff;
-      color: #000;
-    }
-    #content-wrapper {
-      display: flex;
-      gap: 2rem;
-      width: 100%;
-      max-width: 900px;
-    }
-    #content, #out-stock-list {
-      border-radius: 12px;
-      padding: 1rem;
-      flex-grow: 1;
-      box-shadow: 0 0 20px #8e44ad99;
-      user-select: none;
-      max-height: 600px;
-      overflow-y: auto;
-    }
-    #content {
-      background-color: #1a0d38;
-      font-size: 1.15rem;
-    }
-    #out-stock-list {
-      width: 320px;
-      background-color: #2a1a56;
-      font-size: 1rem;
-      display: none;
+      margin: 1rem 0;
     }
     .item {
-      display: flex;
-      justify-content: space-between;
-      padding: 0.6rem 0;
-      border-bottom: 1px solid #4b297b;
+      margin: 0.5rem auto;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      width: fit-content;
     }
-    .item:last-child {
-      border-bottom: none;
+    .in-stock { color: #7df57d; background: #133d13; }
+    .out-stock { color: #ff7777; background: #3d1313; }
+    #content, #out-stock-list {
+      max-width: 600px;
+      margin: 1rem auto;
+      text-align: left;
     }
-    .in-stock {
-      color: #7df57d;
-      font-weight: 700;
-    }
-    .out-stock {
-      color: #ff7777;
-      font-style: italic;
+    #toggle-out-stock {
+      margin: 1rem 0;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 5px;
+      background: #4a148c;
+      color: white;
+      cursor: pointer;
     }
     #last-updated {
-      margin-top: 1rem;
       font-size: 0.9rem;
-      font-style: italic;
-      color: #b594ff;
-      text-align: center;
-      user-select: none;
+      margin-top: 1rem;
+      color: #cfaaff;
     }
     #error {
+      color: #ff4444;
       margin-top: 1rem;
-      color: #ff6666;
-      user-select: none;
-    }
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-10px); }
-      40%, 80% { transform: translateX(10px); }
-    }
-    .shake {
-      animation: shake 0.5s ease-in-out;
-    }
-    .flash-red {
-      background-color: #7e1a1a !important;
-      transition: background-color 0.3s ease;
     }
   </style>
 </head>
 <body>
 
-<h1>🌱 Grow-A-Garden Tracker</h1>
-<div id="restock-timer">Loading…</div>
-<div id="since-restock-timer"></div>
+  <h1>🌱 Grow-A-Garden Tracker</h1>
+  <div id="restock-timer">Loading...</div>
+  <div id="since-restock-timer"></div>
 
-<div id="buttons">
-  <button id="btn-seeds" class="active">Seeds</button>
-  <button id="btn-gear">Gear</button>
-</div>
+  <button id="toggle-out-stock">Show Out-of-Stock Items</button>
 
-<button id="toggle-out-stock">Show Out-of-Stock Items</button>
-
-<div id="content-wrapper">
   <div id="content">Loading...</div>
-  <div id="out-stock-list"></div>
-</div>
+  <div id="out-stock-list" style="display: none;"></div>
 
-<div id="last-updated"></div>
-<div id="error"></div>
+  <div id="last-updated"></div>
+  <div id="error"></div>
 
-<script>
-  const API_URL = 'https://corsproxy.io/?https://gagstock.gleeze.com/grow-a-garden';
-  const RARE = new Set(["Beanstalk","Ember Lily","Sugar Apple","Burning Bud","Blueberry"]);
-  const FIXED_GEAR = ["Master Sprinkler","Cleaning Spray","Favorite Tool","Harvest Tool","Friendship Pot","Godly Sprinkler","Advanced Sprinkler","Basic Sprinkler","Trowel","Recall Wrench","Watering Can"];
-  const FIXED_SEEDS = ["Carrot","Strawberry","Blueberry","Orange Tulip","Tomato","Daffodil","Watermelon","Pumpkin","Apple","Bamboo","Coconut","Cactus","Dragon Fruit","Mango","Grape","Mushroom","Pepper","Cacao","Beanstalk","Ember Lily","Sugar Apple","Burning Bud"];
+  <script>
+    const API = 'https://corsproxy.io/?https://gagstock.gleeze.com/grow-a-garden';
 
-  let lastSeen = JSON.parse(localStorage.getItem('lastSeen') || '{}');
-  let notified = new Set();
-  let restockSeconds = null, lastUpdateTs = 0, sinceStart = null;
-  let mainInterval, currentCategory = 'seed', showOut = false, currentData = null;
+    const RARE = new Set(["Beanstalk", "Ember Lily", "Sugar Apple", "Burning Bud", "Blueberry"]);
+    const FIXED_SEEDS = ["Carrot", "Strawberry", "Blueberry", "Orange Tulip", "Tomato", "Daffodil", "Watermelon", "Pumpkin", "Apple", "Bamboo", "Coconut", "Cactus", "Dragon Fruit", "Mango", "Grape", "Mushroom", "Pepper", "Cacao", "Beanstalk", "Ember Lily", "Sugar Apple", "Burning Bud"];
+    const FIXED_GEAR = ["Master Sprinkler", "Cleaning Spray", "Favorite Tool", "Harvest Tool", "Friendship Pot", "Godly Sprinkler", "Advanced Sprinkler", "Basic Sprinkler", "Trowel", "Recall Wrench", "Watering Can"];
 
-  const ct = document.getElementById('content');
-  const ot = document.getElementById('out-stock-list');
-  const rt = document.getElementById('restock-timer');
-  const st = document.getElementById('since-restock-timer');
-  const lu = document.getElementById('last-updated');
-  const er = document.getElementById('error');
+    const restockEl = document.getElementById('restock-timer');
+    const sinceRestockEl = document.getElementById('since-restock-timer');
+    const contentEl = document.getElementById('content');
+    const outStockEl = document.getElementById('out-stock-list');
+    const lastUpdatedEl = document.getElementById('last-updated');
+    const toggleOutBtn = document.getElementById('toggle-out-stock');
+    const errorEl = document.getElementById('error');
 
-  document.getElementById('btn-seeds').onclick = () => { currentCategory='seed'; toggleButtons(); render(currentData); };
-  document.getElementById('btn-gear').onclick = () => { currentCategory='gear'; toggleButtons(); render(currentData); };
-  document.getElementById('toggle-out-stock').onclick = () => {
-    showOut = !showOut;
-    ot.style.display = showOut ? 'block' : 'none';
-    document.getElementById('toggle-out-stock').textContent = showOut ? 'Hide Out-of-Stock Items' : 'Show Out-of-Stock Items';
-  };
-  function toggleButtons(){
-    document.getElementById('btn-seeds').classList.toggle('active', currentCategory==='seed');
-    document.getElementById('btn-gear').classList.toggle('active', currentCategory==='gear');
-  }
+    let lastSeen = JSON.parse(localStorage.getItem('lastSeen') || '{}');
+    let notified = new Set();
+    let currentData = null;
+    let restockSeconds = 0;
+    let lastUpdateTime = Date.now();
+    let sinceRestockStart = null;
+    let showOut = false;
 
-  function fmt(s){ const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60; return `${h?h+'h ':''}${m?m+'m ':''}${sec}s`; }
+    toggleOutBtn.onclick = () => {
+      showOut = !showOut;
+      outStockEl.style.display = showOut ? 'block' : 'none';
+      toggleOutBtn.textContent = showOut ? 'Hide Out-of-Stock Items' : 'Show Out-of-Stock Items';
+    };
 
-  function updateSince(){
-    if(!sinceStart){ st.textContent=''; return; }
-    st.textContent = `🕒 Since restock: ${fmt(Math.floor((Date.now()-sinceStart)/1000))}`;
-  }
-
-  async function fetchData(){
-    try {
-      er.textContent = '';
-      const r = await fetch(API_URL);
-      if(!r.ok) throw new Error(r.status);
-      const j = await r.json();
-      if(!j.data) throw new Error('No data');
-      return j.data;
-    } catch(e){
-      er.textContent = 'Error loading stock data.';
-      console.error(e);
-      return null;
+    function timeAgo(ts) {
+      if (!ts) return 'never';
+      const s = Math.floor((Date.now() - ts) / 1000);
+      if (s < 60) return `${s}s ago`;
+      if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+      return `${Math.floor(s / 3600)}h ago`;
     }
-  }
 
-  function timeAgo(ts){ if(!ts) return 'never'; const s=Math.floor((Date.now()-ts)/1000); if(s<60) return s+'s ago'; if(s<3600) return Math.floor(s/60)+'m ago'; if(s<86400) return Math.floor(s/3600)+'h ago'; return Math.floor(s/86400)+'d ago'; }
-
-  function updateLastSeen(cat, items){
-    const now=Date.now();
-    items.forEach(it=>{
-      if(it.quantity>0) lastSeen[`${cat}:${it.name}`]=now;
-      else if(!lastSeen[`${cat}:${it.name}`]) lastSeen[`${cat}:${it.name}`]=null;
-    });
-    localStorage.setItem('lastSeen', JSON.stringify(lastSeen));
-  }
-
-  function notify(item){
-    if(Notification.permission==='granted'){
-      new Notification('🌟 Rare Seed Alert', { body:`${item.name} in stock x${item.quantity}`, icon:'https://em-content.zobj.net/source/twitter/376/glowing-star_1f31f.png' });
+    function formatHMS(s) {
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      return `${h ? h + 'h ' : ''}${m ? m + 'm ' : ''}${sec}s`;
     }
-    document.body.classList.add('flash-red','shake');
-    setTimeout(()=>document.body.classList.remove('shake'),500);
-    setTimeout(()=>document.body.classList.remove('flash-red'),1000);
-  }
 
-  function getMinRestock(data){
-    let times=[];
-    ['seed','gear'].forEach(cat=>{
-      data[cat]?.items?.forEach(it=>{
-        if(typeof it.restock_seconds === 'number') times.push(it.restock_seconds);
-      });
-    });
-    return times.length ? Math.min(...times) : null;
-  }
-
-  function render(data){
-    if(!data) return;
-    currentData = data;
-    const categoryItems = currentCategory==='gear' ? FIXED_GEAR : FIXED_SEEDS;
-    const available = data[currentCategory]?.items || [];
-    const map = new Map(available.map(i=>[i.name,i]));
-    const list = categoryItems.map(name=>{
-      const it = map.get(name);
-      return { name, quantity: it?it.quantity:0 };
-    });
-    updateLastSeen(currentCategory, list);
-    const inStock = list.filter(i=>i.quantity>0), outStock = list.filter(i=>i.quantity<=0);
-
-    ct.innerHTML = inStock.length 
-      ? inStock.map(i=>`<div class="item in-stock">${i.name} <span>✅ x${i.quantity}</span></div>`).join('')
-      : '<div>No items in stock.</div>';
-
-    ot.innerHTML = outStock.length 
-      ? outStock.map(i=>`<div class="item out-stock">${i.name} <span>❌ Last: ${timeAgo(lastSeen[`${currentCategory}:${i.name}`])}</span></div>`).join('')
-      : '<div>No out-of-stock items.</div>';
-
-    const date = new Date(data.updated_at||Date.now());
-    const formatted = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York',hour12:true,hour:'numeric',minute:'2-digit',second:'2-digit' }).format(date);
-    lu.textContent = `Updated at ${formatted} EST`;
-
-    (data[currentCategory]?.items || []).forEach(i=>{
-      if(RARE.has(i.name) && i.quantity>0 && !notified.has(i.name)){
-        notify(i);
-        notified.add(i.name);
+    function updateSinceRestock() {
+      if (!sinceRestockStart) {
+        sinceRestockEl.textContent = '';
+        return;
       }
-    });
-  }
+      const elapsed = Math.floor((Date.now() - sinceRestockStart) / 1000);
+      sinceRestockEl.textContent = `🕒 Since restock: ${formatHMS(elapsed)}`;
+    }
 
-  async function update(){
-    const data = await fetchData();
-    if(!data) return;
-    const prev = restockSeconds;
-    restockSeconds = getMinRestock(data);
-    lastUpdateTs = Date.now();
-    if(prev>0 && restockSeconds===0) sinceStart = Date.now();
-    else if(restockSeconds>0) sinceStart = null;
-    render(data);
-  }
+    function updateLastSeen(category, items) {
+      const now = Date.now();
+      items.forEach(i => {
+        const key = category + ':' + i.name;
+        if (i.quantity > 0) {
+          lastSeen[key] = now;
+        } else if (!lastSeen[key]) {
+          lastSeen[key] = null;
+        }
+      });
+      localStorage.setItem('lastSeen', JSON.stringify(lastSeen));
+    }
 
-  function tick(){
-    const now = Date.now();
-    const rem = restockSeconds !== null ? restockSeconds - Math.floor((now-lastUpdateTs)/1000) : null;
-    rt.textContent = rem>0 ? `Next restock in: ${fmt(rem)}` : 'Restocking…';
-    updateSince();
-    if((rem===0 || rem<0) && now - lastUpdateTs > 5000) update();
-  }
+    function showNotification(i) {
+      if (Notification.permission === 'granted') {
+        new Notification('🌟 Rare Seed Alert', {
+          body: `${i.name} is in stock (x${i.quantity})!`,
+          icon: 'https://em-content.zobj.net/source/twitter/376/glowing-star_1f31f.png'
+        });
+      }
+    }
 
-  async function start(){
-    if(Notification.permission==='default') await Notification.requestPermission();
-    await update();
-    mainInterval = setInterval(tick,1000);
-  }
-  start();
-</script>
+    function render(data) {
+      if (!data) return;
+
+      const seedItems = data.seed?.items || [];
+      const seedMap = new Map(seedItems.map(i => [i.name, i]));
+      const combined = FIXED_SEEDS.map(name => {
+        const i = seedMap.get(name);
+        return { name, quantity: i ? i.quantity : 0 };
+      });
+
+      updateLastSeen('seed', combined);
+
+      const inStock = combined.filter(i => i.quantity > 0);
+      const outStock = combined.filter(i => i.quantity <= 0);
+
+      contentEl.innerHTML = inStock.map(i =>
+        `<div class="item in-stock">${i.name} ✅ x${i.quantity}</div>`
+      ).join('') || '<div>No items in stock.</div>';
+
+      outStockEl.innerHTML = outStock.map(i => {
+        const last = lastSeen['seed:' + i.name];
+        return `<div class="item out-stock">${i.name} ❌ Last seen ${timeAgo(last)}</div>`;
+      }).join('');
+
+      seedItems.forEach(i => {
+        if (RARE.has(i.name) && i.quantity > 0 && !notified.has(i.name)) {
+          showNotification(i);
+          notified.add(i.name);
+        }
+      });
+
+      const estTime = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      }).format(new Date(data.updated_at || Date.now()));
+
+      lastUpdatedEl.textContent = `Updated at ${estTime} EST`;
+    }
+
+    async function fetchData() {
+      try {
+        errorEl.textContent = '';
+        const res = await fetch(API);
+        if (!res.ok) throw new Error('Failed response');
+        const json = await res.json();
+        return json.data;
+      } catch (err) {
+        errorEl.textContent = '⚠️ Error loading stock data.';
+        return null;
+      }
+    }
+
+    function getRestockSeconds(data) {
+      const times = (data.seed?.items || [])
+        .filter(i => typeof i.restock_seconds === 'number')
+        .map(i => i.restock_seconds);
+      return times.length ? Math.min(...times) : 0;
+    }
+
+    async function refreshData() {
+      const data = await fetchData();
+      if (!data) return;
+
+      const prevSeconds = restockSeconds;
+      restockSeconds = getRestockSeconds(data);
+      lastUpdateTime = Date.now();
+
+      if (prevSeconds > 0 && restockSeconds === 0) {
+        sinceRestockStart = Date.now();
+      } else if (restockSeconds > 0) {
+        sinceRestockStart = null;
+      }
+
+      currentData = data;
+      render(data);
+    }
+
+    function tick() {
+      const elapsed = Math.floor((Date.now() - lastUpdateTime) / 1000);
+      const remaining = restockSeconds - elapsed;
+      restockEl.textContent = remaining > 0
+        ? `⏳ Next restock in: ${formatHMS(remaining)}`
+        : `🟢 Restocking...`;
+
+      updateSinceRestock();
+
+      if (remaining <= 0 && Date.now() - lastUpdateTime > 5000) {
+        refreshData();
+      }
+    }
+
+    async function startApp() {
+      if (Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+      await refreshData();
+      setInterval(tick, 1000);
+    }
+
+    startApp();
+  </script>
 
 </body>
 </html>
