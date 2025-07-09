@@ -302,26 +302,23 @@
 
  function startLiveTimer(seconds) {
   clearInterval(liveTimerInterval);
-  liveTimerSeconds = seconds;
+  liveTimerSeconds = (seconds && seconds >= 0) ? seconds : 0;
 
-  if (liveTimerSeconds === null || liveTimerSeconds < 0) {
-    restockTimerEl.textContent = ""; // show nothing if no timer
-    return;
-  }
-
+  restockTimerEl.style.color = '#a474ff'; // purple color
   restockTimerEl.textContent = liveTimerSeconds;
 
   liveTimerInterval = setInterval(() => {
     liveTimerSeconds--;
     if (liveTimerSeconds < 0) {
       clearInterval(liveTimerInterval);
-      restockTimerEl.textContent = "0";
-      fetchAndRender(); // refresh data immediately
+      restockTimerEl.textContent = '0';
+      fetchAndRender(); // refresh immediately
     } else {
       restockTimerEl.textContent = liveTimerSeconds;
     }
   }, 1000);
 }
+
 
 
   function render(data) {
