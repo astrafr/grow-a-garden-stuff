@@ -6,162 +6,227 @@
   <title>Grow-A-Garden Tracker</title>
   <style>
     body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #000;
       color: #ddd;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 2rem;
       margin: 0;
-      padding: 1.5rem 1rem 3rem;
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 100vh;
     }
     h1 {
-      color: #bb80ff;
-      margin: 0 0 0.3rem;
-      font-weight: 700;
-      text-shadow: 0 0 8px #9b59b6;
-    }
-    #restock-timer {
-      font-size: 2.2rem;
-      font-weight: bold;
-      color: #a474ff;
-      margin: 1rem 0 2rem;
-      text-align: center;
-      text-shadow: 0 0 12px #8e44ad;
+      font-size: 3rem;
+      margin-bottom: 1.5rem;
+      color: #b388eb;
+      text-shadow: 0 0 8px #a57adecc;
     }
     #last-updated {
-      font-size: 0.9rem;
-      font-style: italic;
-      color: #b594ff;
+      font-size: 1.2rem;
       margin-bottom: 1rem;
+      color: #c8a2ff;
     }
     .section {
-      background-color: #1a0d38;
+      background-color: #1e0f44;
       border-radius: 12px;
-      padding: 1rem 1.5rem;
-      margin: 1rem 0;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
       width: 100%;
       max-width: 700px;
-      box-shadow: 0 0 20px #8e44ad99;
+      box-shadow: 0 0 30px 8px rgba(180, 125, 255, 0.7);
+      cursor: pointer;
+      user-select: none;
     }
     .section h2 {
-      font-size: 1.6rem;
+      font-size: 2rem;
       color: #c8a2ff;
-      margin: 0 0 0.5rem;
+      margin: 0 0 0.5rem 0;
+    }
+    .timer {
+      font-weight: 600;
+      color: #d1b3ff;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+      user-select: text;
     }
     .item {
-      display: flex;
-      justify-content: space-between;
-      padding: 0.4rem 0;
-      border-bottom: 1px solid #4b297b;
+      font-size: 1.1rem;
+      margin: 0.3rem 0;
+      user-select: text;
     }
     .in-stock {
-      color: #7df57d;
-      font-weight: 700;
+      color: #8effa3;
     }
     .out-stock {
-      color: #ff7777;
-      font-style: italic;
+      color: #ff8787;
+    }
+    .hidden-items {
+      display: none;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
+  <h1>🌱 Grow-A-Garden Tracker</h1>
+  <div id="last-updated"></div>
+  <div id="sections"></div>
 
-<h1>🌱 Grow-A-Garden Tracker</h1>
-<div id="restock-timer">Loading...</div>
-<div id="last-updated"></div>
-<div id="sections"></div>
+  <script>
+    const API_URL = '/api/stock'; // Change if needed
+    const FETCH_INTERVAL = 1000;
+    let lastSeen = JSON.parse(localStorage.getItem('lastSeen') || '{}');
 
-<script>
-  const API_URL = 'https://corsproxy.io/?https://gagstock.gleeze.com/grow-a-garden';
-  const FETCH_INTERVAL = 5000;
+    // Store countdown seconds for each category
+    const countdowns = {};
+    // Store intervals for each category to update countdown timers live
+    const countdownIntervals = {};
 
-  const lastUpdatedEl = document.getElementById('last-updated');
-  const restockTimerEl = document.getElementById('restock-timer');
-  const sectionsEl = document.getElementById('sections');
-
-  let countdownSeconds = 0;
-  let countdownInterval;
-
-  function secondsToHMS(seconds) {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${h > 0 ? h + 'h ' : ''}${m > 0 ? m + 'm ' : ''}${s}s`;
-  }
-
-  function updateCountdownDisplay() {
-    if (countdownSeconds <= 0) {
-      restockTimerEl.textContent = "Restocking now...";
-      return;
+    function secondsToHMS(seconds) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = Math.floor(seconds % 60);
+      return `${h ? h + 'h ' : ''}${m ? m + 'm ' : ''}${s}s`;
     }
-    restockTimerEl.textContent = "Restock in: " + secondsToHMS(countdownSeconds);
-    countdownSeconds--;
-  }
 
-  function startCountdown(seconds) {
-    countdownSeconds = seconds;
-    updateCountdownDisplay();
-    clearInterval(countdownInterval);
-    countdownInterval = setInterval(updateCountdownDisplay, 1000);
-  }
-
-  async function fetchData() {
-    try {
-      const res = await fetch(API_URL);
-      if (!res.ok) throw new Error("Failed to fetch");
-      const json = await res.json();
-      return json.data;
-    } catch (e) {
-      console.error("Fetch error:", e);
-      restockTimerEl.textContent = "⚠️ API error";
-      return null;
+    function timeAgo(timestamp) {
+      if (!timestamp) return 'never';
+      const seconds = Math.floor((Date.now() - timestamp) / 1000);
+      return secondsToHMS(seconds);
     }
-  }
 
-  function render(data) {
-    if (!data) return;
-    lastUpdatedEl.textContent = "Last updated: " + new Date(data.updated_at || Date.now()).toLocaleTimeString();
-    sectionsEl.innerHTML = '';
+    // Parse countdown string like "00:05:30" to seconds
+    function parseCountdown(str) {
+      if (!str) return 0;
+      const parts = str.split(':');
+      if (parts.length !== 3) return 0;
+      const [h, m, s] = parts.map(Number);
+      return (h * 3600) + (m * 60) + s;
+    }
 
-    const group = data.seed;
-    if (!group) return;
+    // Update countdown timer text for a category
+    function updateCountdownText(category) {
+      const timerEl = document.querySelector(`#timer-${category}`);
+      if (!timerEl) return;
+      let secs = countdowns[category];
+      if (secs === undefined) return;
+      if (secs <= 0) {
+        timerEl.textContent = 'Restocking now...';
+        clearInterval(countdownIntervals[category]);
+        countdownIntervals[category] = null;
+      } else {
+        timerEl.textContent = 'Restocks in: ' + secondsToHMS(secs);
+        countdowns[category]--;
+      }
+    }
 
-    startCountdown(parseCountdown(group.countdown));
+    // Start countdown interval for a category
+    function startCountdown(category, seconds) {
+      countdowns[category] = seconds;
+      if (countdownIntervals[category]) {
+        clearInterval(countdownIntervals[category]);
+      }
+      updateCountdownText(category);
+      countdownIntervals[category] = setInterval(() => {
+        updateCountdownText(category);
+      }, 1000);
+    }
 
-    const section = document.createElement('div');
-    section.className = 'section';
-    section.innerHTML = `
-      <h2>SEEDS</h2>
-      ${group.items.map(item => `
-        <div class="item">
-          <span>${item.name}</span>
-          <span class="${item.quantity > 0 ? 'in-stock' : 'out-stock'}">
-            ${item.quantity > 0 ? `x${item.quantity}` : 'Out of stock'}
-          </span>
-        </div>
-      `).join('')}
-    `;
-    sectionsEl.appendChild(section);
-  }
+    async function fetchData() {
+      try {
+        const res = await fetch(API_URL);
+        if (!res.ok) throw new Error("Status: " + res.status);
+        const json = await res.json();
+        return json.data;
+      } catch (err) {
+        console.error('Fetch error:', err);
+        return null;
+      }
+    }
 
-  function parseCountdown(str) {
-    if (!str || typeof str !== 'string') return 0;
-    const parts = str.split(':');
-    if (parts.length !== 3) return 0;
-    const [h, m, s] = parts.map(Number);
-    return (h * 3600) + (m * 60) + s;
-  }
+    function updateLastSeen(category, items) {
+      const now = Date.now();
+      const prefix = category + ':';
+      items.forEach(item => {
+        lastSeen[prefix + item.name] = now;
+      });
+      localStorage.setItem('lastSeen', JSON.stringify(lastSeen));
+    }
 
-  async function refresh() {
-    const data = await fetchData();
-    if (data) render(data);
-  }
+    function render(data) {
+      if (!data) return;
+      const container = document.getElementById('sections');
+      const updated = document.getElementById('last-updated');
+      container.innerHTML = '';
+      updated.textContent = 'Last Updated: ' + new Date(data.updated_at || Date.now()).toLocaleTimeString();
 
-  refresh();
-  setInterval(refresh, FETCH_INTERVAL);
-</script>
+      const categories = ['gear', 'egg', 'seed', 'honey', 'cosmetics'];
 
+      categories.forEach(category => {
+        const group = data[category];
+        if (!group) return;
+
+        // Update last seen timestamps for current in-stock items
+        updateLastSeen(category, group.items);
+
+        // Parse countdown for category, start or update live timer
+        const countdownSeconds = parseCountdown(group.countdown);
+        startCountdown(category, countdownSeconds);
+
+        const prefix = category + ':';
+        const currentNames = new Set(group.items.map(i => i.name));
+        const knownItems = new Set([
+          ...Object.keys(lastSeen)
+            .filter(k => k.startsWith(prefix))
+            .map(k => k.slice(prefix.length)),
+          ...Array.from(currentNames)
+        ]);
+
+        // Build the section container
+        const section = document.createElement('div');
+        section.className = 'section';
+
+        // Compose HTML for visible in-stock items
+        const visibleItemsHtml = group.items.map(i => 
+          `<div class="item in-stock">${i.emoji || ''} ${i.name}: ✅ x${i.quantity}</div>`
+        ).join('');
+
+        section.innerHTML = `
+          <h2>${category.toUpperCase()}</h2>
+          <div class="timer" id="timer-${category}">Loading...</div>
+          <div class="visible-items">${visibleItemsHtml}</div>
+          <div class="hidden-items" id="extra-${category}"></div>
+        `;
+
+        section.addEventListener('click', () => {
+          const extra = document.getElementById(`extra-${category}`);
+          if (extra.innerHTML === '') {
+            // Populate hidden out-of-stock items
+            extra.innerHTML = Array.from(knownItems).filter(name => {
+              return !group.items.some(i => i.name === name);
+            }).map(name => {
+              const last = lastSeen[prefix + name];
+              return `<div class="item out-stock">❌ ${name}: Last seen ${timeAgo(last)} ago</div>`;
+            }).join('');
+            extra.style.display = 'block';
+          } else {
+            extra.style.display = extra.style.display === 'none' ? 'block' : 'none';
+          }
+        });
+
+        container.appendChild(section);
+      });
+    }
+
+    async function start() {
+      const data = await fetchData();
+      render(data);
+      setInterval(async () => {
+        const newData = await fetchData();
+        render(newData);
+      }, FETCH_INTERVAL);
+    }
+
+    start();
+  </script>
 </body>
 </html>
