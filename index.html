@@ -1,226 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Grow-A-Garden Tracker</title>
-  <style>
-    body {
-      margin: 0;
-      background: #000;
-      color: #a474ff;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      padding: 2rem;
-      text-align: center;
-      overflow-x: hidden;
-    }
-    h1 {
-      font-size: 2.8rem;
-      color: #bb80ff;
-      text-shadow: 0 0 12px #9b59b6;
-      margin-bottom: 0.2rem;
-    }
-    #restock-timer {
-      font-size: 2.4rem;
-      font-weight: bold;
-      color: #fff;
-      margin-bottom: 1.5rem;
-      text-shadow: 0 0 12px #8e44ad;
-    }
-    #category-buttons {
-      margin-bottom: 1.5rem;
-    }
-    button {
-      background: transparent;
-      border: 2px solid #8e44ad;
-      color: #a474ff;
-      padding: 0.6rem 1.2rem;
-      font-size: 1.2rem;
-      border-radius: 8px;
-      margin: 0 0.5rem;
-      cursor: pointer;
-      box-shadow: 0 0 10px #8e44ad99;
-      transition: background-color 0.3s ease;
-    }
-    button:hover {
-      background-color: #8e44ad44;
-    }
-    #content {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 1rem;
-      max-width: 900px;
-      margin: 0 auto 3rem auto;
-    }
-    .item {
-      background: #1a0d38;
-      border: 2px solid #8e44ad;
-      padding: 1rem;
-      border-radius: 10px;
-      min-width: 150px;
-      box-shadow: 0 0 14px #8e44adaa;
-      cursor: default;
-      user-select: none;
-      transition: transform 0.2s ease;
-    }
-    .item:hover {
-      transform: scale(1.07);
-    }
-    .item-name {
-      font-size: 1.1rem;
-      font-weight: bold;
-      margin-bottom: 0.3rem;
-    }
-    .in-stock {
-      color: #7df57d;
-      font-weight: bold;
-    }
-    .out-stock {
-      color: #ff7777;
-      font-style: italic;
-    }
-
-    /* Modal Styles */
-    #modal-bg {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.85);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      overflow-y: auto;
-      padding: 2rem;
-    }
-    #modal {
-      background: #1a0d38;
-      border: 3px solid #8e44ad;
-      border-radius: 12px;
-      max-width: 700px;
-      width: 100%;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: 0 0 24px #8e44addd;
-      padding: 1.5rem;
-      position: relative;
-      color: #a474ff;
-    }
-    #modal h2 {
-      margin-top: 0;
-      margin-bottom: 1rem;
-      text-shadow: 0 0 8px #9b59b6;
-    }
-    #modal .close-btn {
-      position: absolute;
-      top: 12px;
-      right: 16px;
-      background: transparent;
-      border: none;
-      color: #a474ff;
-      font-size: 1.8rem;
-      cursor: pointer;
-    }
-    #modal .items-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      justify-content: center;
-    }
-    #modal .item {
-      min-width: 140px;
-      box-shadow: 0 0 12px #8e44adaa;
-      cursor: default;
-      user-select: none;
-    }
-    #modal-toggle-outstock {
-      margin-top: 1rem;
-      text-align: center;
-    }
-    #modal-toggle-outstock button {
-      font-size: 1rem;
-      padding: 0.4rem 1rem;
-      border-radius: 6px;
-      border: 2px solid #8e44ad;
-      background: transparent;
-      color: #a474ff;
-      cursor: pointer;
-      box-shadow: 0 0 8px #8e44ad99;
-      transition: background-color 0.3s ease;
-    }
-    #modal-toggle-outstock button:hover {
-      background-color: #8e44ad44;
-    }
-
-    /* Shake animation for warning */
-    @keyframes shake {
-      0%, 100% { transform: translateX(0) }
-      20%, 60% { transform: translateX(-10px) }
-      40%, 80% { transform: translateX(10px) }
-    }
-    body.shake {
-      animation: shake 0.5s ease-in-out 3;
-      background-color: #330000;
-      transition: background-color 0.5s ease;
-    }
-
-    /* Out of stock sidebar */
-    #outstock-sidebar {
-      position: fixed;
-      right: 0;
-      top: 0;
-      height: 100vh;
-      width: 280px;
-      background: #1a0d38;
-      border-left: 3px solid #8e44ad;
-      padding: 1rem;
-      overflow-y: auto;
-      box-shadow: -4px 0 20px #8e44adcc;
-      display: none;
-      z-index: 900;
-    }
-    #outstock-sidebar h3 {
-      margin-top: 0;
-      color: #bb80ff;
-      text-shadow: 0 0 8px #9b59b6;
-      text-align: center;
-      margin-bottom: 1rem;
-    }
-    #outstock-sidebar .item {
-      margin-bottom: 0.8rem;
-      font-style: italic;
-      color: #ff7777;
-    }
-
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grow-A-Garden Tracker</title>
+<style>
+  body {
+    background: #000;
+    color: #a474ff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 2rem;
+    margin: 0;
+    text-align: center;
+    overflow-x: hidden;
+  }
+  h1 {
+    font-size: 2.5rem;
+    color: #bb80ff;
+    text-shadow: 0 0 8px #9b59b6;
+  }
+  #restock-timer {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #fff;
+    margin: 1rem 0 2rem 0;
+    text-shadow: 0 0 8px #8e44ad;
+  }
+  #toggle-outstock {
+    margin-bottom: 2rem;
+    cursor: pointer;
+    background: transparent;
+    border: 2px solid #8e44ad;
+    color: #a474ff;
+    font-size: 1.1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    box-shadow: 0 0 10px #8e44ad99;
+    transition: background-color 0.3s ease;
+  }
+  #toggle-outstock:hover {
+    background-color: #8e44ad44;
+  }
+  #content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .item {
+    background: #1a0d38;
+    border: 2px solid #8e44ad;
+    padding: 1rem;
+    border-radius: 10px;
+    min-width: 160px;
+    box-shadow: 0 0 12px #8e44ad99;
+    user-select: none;
+  }
+  .item-name {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 0.3rem;
+  }
+  .in-stock {
+    color: #7df57d;
+    font-weight: bold;
+  }
+  .out-stock {
+    color: #ff7777;
+    font-style: italic;
+  }
+  #outstock-sidebar {
+    position: fixed;
+    right: 0;
+    top: 0;
+    height: 100vh;
+    width: 280px;
+    background: #1a0d38;
+    border-left: 3px solid #8e44ad;
+    padding: 1rem;
+    overflow-y: auto;
+    box-shadow: -4px 0 20px #8e44adcc;
+    display: none;
+    z-index: 900;
+  }
+  #outstock-sidebar h3 {
+    margin-top: 0;
+    color: #bb80ff;
+    text-shadow: 0 0 8px #9b59b6;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  #outstock-sidebar .item {
+    margin-bottom: 0.7rem;
+    font-style: italic;
+    color: #ff7777;
+  }
+  /* Shake animation for warning */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0) }
+    20%, 60% { transform: translateX(-10px) }
+    40%, 80% { transform: translateX(10px) }
+  }
+  body.shake {
+    animation: shake 0.5s ease-in-out 3;
+    background-color: #330000;
+    transition: background-color 0.5s ease;
+  }
+</style>
 </head>
 <body>
   <h1>🌱 Grow-A-Garden Tracker</h1>
   <div id="restock-timer">Loading...</div>
 
-  <div id="category-buttons">
-    <button id="show-seeds">Show Seeds</button>
-    <button id="show-gear">Show Gear</button>
-    <button id="toggle-outstock">Show Out of Stock</button>
-  </div>
+  <button id="toggle-outstock">Show Out of Stock</button>
 
   <div id="content">Fetching stock data...</div>
 
   <div id="outstock-sidebar" aria-label="Out of stock items">
     <h3>Out of Stock</h3>
     <div id="outstock-list"></div>
-  </div>
-
-  <!-- Modal -->
-  <div id="modal-bg" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div id="modal">
-      <button class="close-btn" aria-label="Close modal">&times;</button>
-      <h2 id="modal-title"></h2>
-      <div class="items-list"></div>
-      <div id="modal-toggle-outstock">
-        <button id="modal-toggle-outstock-btn">Show Out of Stock</button>
-      </div>
-    </div>
   </div>
 
 <script>
@@ -230,25 +130,13 @@
   const contentEl = document.getElementById('content');
   const outstockSidebar = document.getElementById('outstock-sidebar');
   const outstockList = document.getElementById('outstock-list');
-
-  const modalBg = document.getElementById('modal-bg');
-  const modal = modalBg.querySelector('#modal');
-  const modalTitle = modal.querySelector('#modal-title');
-  const modalItemsList = modal.querySelector('.items-list');
-  const modalCloseBtn = modal.querySelector('.close-btn');
-  const modalToggleOutstockBtn = document.getElementById('modal-toggle-outstock-btn');
-
-  const btnShowSeeds = document.getElementById('show-seeds');
-  const btnShowGear = document.getElementById('show-gear');
-  const btnToggleOutstock = document.getElementById('toggle-outstock');
+  const toggleOutstockBtn = document.getElementById('toggle-outstock');
 
   let liveSeconds = 0;
   let allSeeds = [];
   let allGear = [];
   let outstockVisible = false;
-  let modalOutstockVisible = false;
 
-  // Rare seeds to watch for notifications & shake
   const rareSeeds = new Set([
     "Beanstalk",
     "Ember Lily",
@@ -256,12 +144,10 @@
     "Burning Bud"
   ]);
 
-  // Request notification permission upfront
   if ('Notification' in window && Notification.permission !== 'granted') {
     Notification.requestPermission();
   }
 
-  // Helper: format seconds to HH:MM:SS
   function secToHMS(sec) {
     sec = Math.max(0, sec);
     const h = String(Math.floor(sec / 3600)).padStart(2, '0');
@@ -270,7 +156,6 @@
     return `${h}:${m}:${s}`;
   }
 
-  // Fetch data from API
   async function fetchData() {
     try {
       const res = await fetch(API_URL);
@@ -283,14 +168,12 @@
     }
   }
 
-  // Show desktop notification
   function notify(title, body) {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(title, { body, icon: '' });
     }
   }
 
-  // Shake screen for warning
   function shakeScreen() {
     document.body.classList.add('shake');
     setTimeout(() => {
@@ -298,11 +181,8 @@
     }, 1500);
   }
 
-  // Render items on main screen (all in stock)
   function renderMainItems(seeds, gear) {
     const combined = [...seeds, ...gear];
-
-    // Show only items in stock
     const inStockItems = combined.filter(i => i.quantity > 0);
 
     if (inStockItems.length === 0) {
@@ -318,7 +198,6 @@
     `).join('');
   }
 
-  // Render out of stock sidebar
   function renderOutstockSidebar(seeds, gear) {
     const combined = [...seeds, ...gear];
     const outstockItems = combined.filter(i => i.quantity === 0);
@@ -331,54 +210,6 @@
     `).join('');
   }
 
-  // Render modal with either seeds or gear items
-  function renderModal(category) {
-    let items = [];
-    if (category === 'seeds') items = allSeeds;
-    else if (category === 'gear') items = allGear;
-    else return;
-
-    modalTitle.textContent = category.charAt(0).toUpperCase() + category.slice(1);
-
-    // By default show all in stock items
-    let visibleItems = items.filter(i => i.quantity > 0);
-
-    if (modalOutstockVisible) {
-      // If toggled, show all items, mark out of stock items
-      visibleItems = items;
-    }
-
-    modalItemsList.innerHTML = visibleItems.map(i => {
-      const inStock = i.quantity > 0;
-      let lastSeen = '';
-      if (!inStock && i.last_seen) {
-        // last_seen is a string like "1 hour ago", "5 min ago"
-        lastSeen = `<div class="out-stock">Last seen: ${i.last_seen}</div>`;
-      }
-      return `
-        <div class="item">
-          <div class="item-name">${i.name}</div>
-          <div class="${inStock ? 'in-stock' : 'out-stock'}">
-            ${inStock ? `In stock x${i.quantity}` : `Out of stock` }
-          </div>
-          ${lastSeen}
-        </div>
-      `;
-    }).join('');
-  }
-
-  // Open modal
-  function openModal(category) {
-    renderModal(category);
-    modalBg.style.display = 'flex';
-  }
-
-  // Close modal
-  function closeModal() {
-    modalBg.style.display = 'none';
-  }
-
-  // Check for rare seeds in stock, send notifications and shake screen
   function checkRareSeeds(seeds) {
     seeds.forEach(seed => {
       if (rareSeeds.has(seed.name) && seed.quantity > 0) {
@@ -388,7 +219,6 @@
     });
   }
 
-  // Main update function
   async function update() {
     const data = await fetchData();
     if (!data) return;
@@ -396,7 +226,6 @@
     allSeeds = data.seed?.items || [];
     allGear = data.gear?.items || [];
 
-    // Calculate the minimum restock_seconds among all items
     const allItems = [...allSeeds, ...allGear];
     const times = allItems
       .map(i => i.restock_seconds)
@@ -404,10 +233,8 @@
     liveSeconds = times.length ? Math.min(...times) : 0;
     timerEl.textContent = secToHMS(liveSeconds);
 
-    // Render main items (in stock only)
     renderMainItems(allSeeds, allGear);
 
-    // Render out of stock sidebar if visible
     if (outstockVisible) {
       renderOutstockSidebar(allSeeds, allGear);
       outstockSidebar.style.display = 'block';
@@ -415,50 +242,23 @@
       outstockSidebar.style.display = 'none';
     }
 
-    // If modal open, re-render modal content
-    if (modalBg.style.display === 'flex') {
-      // Detect modal category by title text
-      const cat = modalTitle.textContent.toLowerCase();
-      renderModal(cat);
-    }
-
-    // Check rare seeds notification
     checkRareSeeds(allSeeds);
   }
 
-  // Timer countdown locally every second
   setInterval(() => {
     liveSeconds = Math.max(0, liveSeconds - 1);
     timerEl.textContent = secToHMS(liveSeconds);
   }, 1000);
 
-  // Refresh data every 10 seconds
   setInterval(update, 10000);
-  update(); // initial call
+  update();
 
-  // Event listeners
-  btnShowSeeds.addEventListener('click', () => openModal('seeds'));
-  btnShowGear.addEventListener('click', () => openModal('gear'));
-  modalCloseBtn.addEventListener('click', closeModal);
-  modalBg.addEventListener('click', e => {
-    if (e.target === modalBg) closeModal();
-  });
-
-  btnToggleOutstock.addEventListener('click', () => {
+  toggleOutstockBtn.addEventListener('click', () => {
     outstockVisible = !outstockVisible;
-    btnToggleOutstock.textContent = outstockVisible ? 'Hide Out of Stock' : 'Show Out of Stock';
+    toggleOutstockBtn.textContent = outstockVisible ? 'Hide Out of Stock' : 'Show Out of Stock';
     if (outstockVisible) renderOutstockSidebar(allSeeds, allGear);
     outstockSidebar.style.display = outstockVisible ? 'block' : 'none';
   });
-
-  modalToggleOutstockBtn.addEventListener('click', () => {
-    modalOutstockVisible = !modalOutstockVisible;
-    modalToggleOutstockBtn.textContent = modalOutstockVisible ? 'Hide Out of Stock' : 'Show Out of Stock';
-    // Re-render modal with updated outstock toggle
-    const cat = modalTitle.textContent.toLowerCase();
-    renderModal(cat);
-  });
-
 </script>
 </body>
 </html>
