@@ -13,6 +13,7 @@
     margin: 0;
     text-align: center;
     overflow-x: hidden;
+    transition: background-color 0.5s ease;
   }
   h1 {
     font-size: 2.5rem;
@@ -105,8 +106,7 @@
   }
   body.shake {
     animation: shake 0.5s ease-in-out 3;
-    background-color: #330000;
-    transition: background-color 0.5s ease;
+    background-color: #330000 !important;
   }
 </style>
 </head>
@@ -175,10 +175,12 @@
   }
 
   function shakeScreen() {
-    document.body.classList.add('shake');
-    setTimeout(() => {
-      document.body.classList.remove('shake');
-    }, 1500);
+    if (!document.body.classList.contains('shake')) {
+      document.body.classList.add('shake');
+      setTimeout(() => {
+        document.body.classList.remove('shake');
+      }, 1500);
+    }
   }
 
   function renderMainItems(seeds, gear) {
@@ -210,11 +212,19 @@
     `).join('');
   }
 
+  // Track which rare seeds were notified already so no repeats
+  const notifiedRareSeeds = new Set();
+
   function checkRareSeeds(seeds) {
     seeds.forEach(seed => {
-      if (rareSeeds.has(seed.name) && seed.quantity > 0) {
+      if (rareSeeds.has(seed.name) && seed.quantity > 0 && !notifiedRareSeeds.has(seed.name)) {
         notify('Rare seed in stock!', `${seed.name} is available now!`);
         shakeScreen();
+        notifiedRareSeeds.add(seed.name);
+      }
+      // Remove from set if out of stock to allow future notifications
+      if (rareSeeds.has(seed.name) && seed.quantity === 0) {
+        notifiedRareSeeds.delete(seed.name);
       }
     });
   }
