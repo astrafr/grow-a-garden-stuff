@@ -163,7 +163,7 @@
 <div id="error"></div>
 
 <script>
-  const API_URL = 'https://api.allorigins.win/raw?url=https://gagstock.gleeze.com/grow-a-garden';
+  const API_URL = 'https://corsproxy.io/?https://gagstock.gleeze.com/grow-a-garden';
 
   const RARE_ITEMS = new Set([
     "Beanstalk",
@@ -282,14 +282,6 @@
     });
   }
 
-  function secondsToHMS(seconds) {
-    if (seconds < 0) seconds = 0;
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-    return `${h ? h + 'h ' : ''}${m ? m + 'm ' : ''}${s}s`;
-  }
-
   function getNextRestockSeconds(data) {
     if (!data) return 0;
     let times = [];
@@ -360,7 +352,21 @@
 
     if (!showOutStock) outStockEl.style.display = 'none';
 
-    lastUpdatedEl.textContent = 'Last updated: ' + new Date(data.updated_at || Date.now()).toLocaleTimeString();
+    // Format updated_at to EST time string:
+    const updatedDate = new Date(data.updated_at || Date.now());
+
+    // Using Intl.DateTimeFormat to format EST with 12-hour clock + seconds
+    const estFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      hour12: true,
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+
+    const formattedESTTime = estFormatter.format(updatedDate);
+
+    lastUpdatedEl.textContent = `Updated at ${formattedESTTime} EST`;
 
     checkNotifications(data);
   }
@@ -380,35 +386,30 @@
   }
 
   let restockSeconds = 0;
-  let lastUpdateTimestamp = 0;
   let countdownInterval = null;
 
   async function updateData() {
     const data = await fetchData();
     if (!data) {
       restockSeconds = 0;
-      restockTimerEl.textContent = 'No data';
+      restockTimerEl.textContent = restockSeconds;
       return;
     }
     restockSeconds = getNextRestockSeconds(data);
-    lastUpdateTimestamp = Date.now();
-    restockTimerEl.textContent = secondsToHMS(restockSeconds);
+    restockTimerEl.textContent = restockSeconds;
     render(data);
   }
 
-  function updateRestockTimer() {
-    if (restockSeconds <= 0) {
-      restockTimerEl.textContent = 'No upcoming restock';
-      return;
-    }
-    const elapsed = Math.floor((Date.now() - lastUpdateTimestamp) / 1000);
-    let timeLeft = restockSeconds - elapsed;
-    if (timeLeft < 0) timeLeft = 0;
-    restockTimerEl.textContent = `Next restock in: ${secondsToHMS(timeLeft)}`;
-
-    if(timeLeft <= 0) {
-      updateData();
-    }
+  function startCountdown() {
+    if (countdownInterval) clearInterval(countdownInterval);
+    countdownInterval = setInterval(async () => {
+      restockSeconds--;
+      if (restockSeconds < 0) {
+        await updateData();
+      } else {
+        restockTimerEl.textContent = restockSeconds;
+      }
+    }, 1000);
   }
 
   async function startApp() {
@@ -416,10 +417,7 @@
       await Notification.requestPermission();
     }
     await updateData();
-    if (countdownInterval) clearInterval(countdownInterval);
-    countdownInterval = setInterval(() => {
-      updateRestockTimer();
-    }, 1000);
+    startCountdown();
   }
 
   startApp();
