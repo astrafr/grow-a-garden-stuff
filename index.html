@@ -30,6 +30,7 @@
     min-width: 280px;
     text-align: center;
     text-shadow: 0 0 12px #8e44ad;
+    user-select: none;
   }
   #buttons {
     margin-bottom: 1.5rem;
@@ -79,6 +80,8 @@
     font-size: 1.15rem;
     box-shadow: 0 0 20px #8e44ad99;
     user-select: none;
+    max-height: 500px;
+    overflow-y: auto;
   }
   #out-stock-list {
     background-color: #2a1a56;
@@ -89,6 +92,8 @@
     box-shadow: 0 0 20px #6e2ecccc;
     user-select: none;
     display: none;
+    max-height: 500px;
+    overflow-y: auto;
   }
   .item {
     display: flex;
@@ -132,7 +137,7 @@
 <body>
 
 <h1>🌱 Grow-A-Garden Tracker</h1>
-<div id="restock-timer">Loading restock timer...</div>
+<div id="restock-timer">0</div>
 
 <div id="buttons">
   <button id="btn-seeds" class="active">Seeds</button>
@@ -150,7 +155,6 @@
 
 <script>
   const API_URL = 'https://corsproxy.io/?https://gagstock.gleeze.com/grow-a-garden';
-  const FETCH_INTERVAL = 5000;
 
   const RARE_ITEMS = new Set([
     "Beanstalk",
@@ -193,8 +197,6 @@
   let currentCategory = 'seed';
   let currentData = null;
   let showOutStock = false;
-  let liveTimerSeconds = null;
-  let liveTimerInterval = null;
 
   btnSeeds.onclick = () => {
     currentCategory = 'seed';
@@ -223,14 +225,6 @@
     if (seconds < 3600) return Math.floor(seconds/60) + 'm ago';
     if (seconds < 86400) return Math.floor(seconds/3600) + 'h ago';
     return Math.floor(seconds/86400) + 'd ago';
-  }
-
-  function formatTimeLeft(seconds) {
-    if (seconds <= 0) return "Restocking now";
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    if (m > 0) return `${m}m ${s}s until restock`;
-    return `${s}s until restock`;
   }
 
   function updateLastSeen(category, items) {
@@ -290,7 +284,7 @@
         });
       }
     });
-    if (times.length === 0) return null;
+    if (times.length === 0) return 0;
     return Math.min(...times);
   }
 
@@ -300,40 +294,16 @@
     return catItems.some(i => i.quantity > 0);
   }
 
- function startLiveTimer(seconds) {
-  clearInterval(liveTimerInterval);
-  liveTimerSeconds = (seconds && seconds >= 0) ? seconds : 0;
-
-  restockTimerEl.style.color = '#a474ff'; // purple color
-  restockTimerEl.textContent = liveTimerSeconds;
-
-  liveTimerInterval = setInterval(() => {
-    liveTimerSeconds--;
-    if (liveTimerSeconds < 0) {
-      clearInterval(liveTimerInterval);
-      restockTimerEl.textContent = '0';
-      fetchAndRender(); // refresh immediately
-    } else {
-      restockTimerEl.textContent = liveTimerSeconds;
-    }
-  }, 1000);
-}
-
-
-
   function render(data) {
     if (!data) {
       contentEl.textContent = '⚠️ Failed to load stock.';
-      restockTimerEl.textContent = '';
+      restockTimerEl.textContent = '0';
       lastUpdatedEl.textContent = '';
       outStockEl.style.display = 'none';
       toggleOutStockBtn.style.display = 'none';
       return;
     }
     currentData = data;
-
-    const nextRestock = getNextRestockSeconds(data);
-    startLiveTimer(nextRestock);
 
     toggleOutStockBtn.style.display = 'inline-block';
 
@@ -395,6 +365,47 @@
     }
   }
 
+  let liveTimerSeconds = 0;
+  let liveTimerInterval = null;
+
+  async function fetchRestockSeconds() {
+    try {
+      const res = await fetch(API_URL);
+      if (!res.ok) throw new Error('Network response was not ok');
+      const json = await res.json();
+      let times = [];
+      ['seed','gear'].forEach(cat => {
+        if (json.data[cat]?.items) {
+          json.data[cat].items.forEach(i => {
+            if (typeof i.restock_seconds === 'number' && i.restock_seconds > 0) {
+              times.push(i.restock_seconds);
+            }
+          });
+        }
+      });
+      if (times.length === 0) return 0;
+      return Math.min(...times);
+    } catch(e) {
+      console.error(e);
+      return 0;
+    }
+  }
+
+  async function startLiveTimer() {
+    clearInterval(liveTimerInterval);
+    liveTimerSeconds = await fetchRestockSeconds();
+
+    restockTimerEl.textContent = liveTimerSeconds;
+
+    liveTimerInterval = setInterval(async () => {
+      liveTimerSeconds--;
+      if (liveTimerSeconds < 0) {
+        liveTimerSeconds = await fetchRestockSeconds();
+      }
+      restockTimerEl.textContent = liveTimerSeconds;
+    }, 1000);
+  }
+
   async function fetchAndRender() {
     const data = await fetchData();
     render(data);
@@ -405,7 +416,10 @@
       await Notification.requestPermission();
     }
     await fetchAndRender();
-    setInterval(fetchAndRender, FETCH_INTERVAL);
+    startLiveTimer();
+    setInterval(async () => {
+      await fetchAndRender();
+    }, 10000);
   }
 
   start();
