@@ -3,78 +3,74 @@
 <head>
   <meta charset="UTF‑8">
   <meta name="viewport" content="width=device‑width,initial‑scale=1.0">
-  <title>Grow-A-Garden Stock Tracker</title>
+  <title>Grow-A-Garden Tracker</title>
   <style>
-    body { font-family: Arial; margin: 2rem; }
-    h1 { text-align: center; }
-    .section { margin-top: 2rem; }
-    .item { margin: 0.5rem 0; }
-    .name { font-weight: bold; }
+    body { font-family: Arial, sans-serif; padding: 2rem; background: #f4f4f4; color: #333; }
+    h1 { text-align: center; margin-bottom: 1rem; }
+    .section { background: white; padding: 1rem; margin-bottom: 1rem; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
+    .section h2 { margin-top: 0; }
+    .item { margin: 0.25rem 0; }
+    .error { color: red; font-weight: bold; margin-top: 1rem; }
   </style>
 </head>
 <body>
-  <h1>🌼 Grow-A-Garden Tracker</h1>
+  <h1>🌱 Grow-A-Garden Tracker</h1>
   <div id="last-updated"></div>
   <div id="sections"></div>
+  <div id="error" class="error"></div>
 
   <script>
     const API_URL = 'https://gagstock.gleeze.com/grow-a-garden';
-    const REFRESH_INTERVAL = 15 * 1000; // 15 seconds
+    const REFRESH_INTERVAL = 15000; // 15 seconds
 
     async function fetchData() {
       try {
         const res = await fetch(API_URL);
-        if (!res.ok) throw new Error(res.status);
+        if (!res.ok) throw new Error("Status: " + res.status);
         const json = await res.json();
         return json.data;
       } catch (err) {
-        console.error('Fetch error:', err);
+        document.getElementById('error').textContent = '⚠️ Failed to load stock. It might be blocked (CORS).';
+        console.error(err);
         return null;
       }
     }
 
-    function formatTime(seconds) {
-      const m = String(Math.floor(seconds / 60)).padStart(2, '0');
-      const s = String(seconds % 60).padStart(2, '0');
-      return `${m}:${s}`;
-    }
-
     function render(data) {
+      if (!data) return;
+
       const container = document.getElementById('sections');
+      const updated = document.getElementById('last-updated');
       container.innerHTML = '';
+      updated.textContent = 'Last Updated: ' + new Date(data.updated_at || Date.now()).toLocaleTimeString();
 
-      document.getElementById('last-updated').textContent =
-        `Last updated: ${new Date(data.updated_at).toLocaleTimeString()}`;
+      const categories = ['gear', 'egg', 'seed', 'honey', 'cosmetics'];
 
-      for (const category of ['gear','egg','seed','honey','cosmetics']) {
-        if (!data[category]) continue;
-        const sec = document.createElement('div');
-        sec.className = 'section';
-        sec.innerHTML = `<h2>${category.charAt(0).toUpperCase() + category.slice(1)}</h2>`;
+      categories.forEach(category => {
+        if (!data[category]) return;
+
+        const section = document.createElement('div');
+        section.className = 'section';
+        section.innerHTML = `<h2>${category.toUpperCase()} (Restocks in ${data[category].countdown})</h2>`;
+
         data[category].items.forEach(item => {
-          const div = document.createElement('div');
-          div.className = 'item';
-          div.innerHTML = `
-            <span class="name">${item.emoji || ''} ${item.name}</span>
-            – Qty: ${item.quantity}
-          `;
-          sec.appendChild(div);
+          const el = document.createElement('div');
+          el.className = 'item';
+          el.textContent = `${item.emoji || ''} ${item.name}: ${item.quantity}`;
+          section.appendChild(el);
         });
-        const timerDiv = document.createElement('div');
-        timerDiv.textContent = `Restock in: ${data[category].countdown}`;
-        sec.appendChild(timerDiv);
-        container.appendChild(sec);
-      }
+
+        container.appendChild(section);
+      });
     }
 
-    async function refreshLoop() {
+    async function update() {
       const data = await fetchData();
-      if (data) render(data);
-      else console.warn('Failed to load data.');
+      render(data);
     }
 
-    refreshLoop();
-    setInterval(refreshLoop, REFRESH_INTERVAL);
+    update();
+    setInterval(update, REFRESH_INTERVAL);
   </script>
 </body>
 </html>
