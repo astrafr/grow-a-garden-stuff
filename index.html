@@ -1,418 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Grow-A-Garden Tracker</title>
-<style>
-  body {
-    background-color: #000;
-    color: #ddd;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-    padding: 1.5rem 1rem 3rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
-  }
-  h1 {
-    color: #bb80ff;
-    margin: 0 0 0.3rem;
-    font-weight: 700;
-    text-shadow: 0 0 8px #9b59b6;
-  }
-  #restock-timer {
-    font-size: 3rem;
-    font-weight: 700;
-    color: #a474ff;
-    margin-bottom: 1rem;
-    min-width: 280px;
-    text-align: center;
-    text-shadow: 0 0 12px #8e44ad;
-  }
-  #buttons {
-    margin-bottom: 1.5rem;
-  }
-  button {
-    background: transparent;
-    border: 2px solid #9b59b6;
-    color: #bb80ff;
-    font-weight: 600;
-    font-size: 1.1rem;
-    padding: 0.5rem 1.5rem;
-    margin: 0 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.25s ease;
-  }
-  button:hover {
-    background: #9b59b6;
-    color: #000;
-  }
-  button.active {
-    background: #8e44ad;
-    color: #fff;
-    border-color: #8e44ad;
-    box-shadow: 0 0 10px #8e44adaa;
-  }
-  #toggle-out-stock {
-    margin-bottom: 1rem;
-    border-color: #bb80ff;
-    color: #bb80ff;
-  }
-  #toggle-out-stock:hover {
-    background: #bb80ff;
-    color: #000;
-  }
-  #content-wrapper {
-    display: flex;
-    gap: 2rem;
-    width: 100%;
-    max-width: 800px;
-  }
-  #content {
-    background-color: #1a0d38;
-    border-radius: 12px;
-    padding: 1rem 2rem;
-    flex-grow: 1;
-    font-size: 1.15rem;
-    box-shadow: 0 0 20px #8e44ad99;
-    user-select: none;
-  }
-  #out-stock-list {
-    background-color: #2a1a56;
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
-    width: 280px;
-    font-size: 1rem;
-    box-shadow: 0 0 20px #6e2ecccc;
-    user-select: none;
-    display: none;
-  }
-  .item {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.6rem 0;
-    border-bottom: 1px solid #4b297b;
-  }
-  .item:last-child {
-    border-bottom: none;
-  }
-  .in-stock {
-    color: #7df57d;
-    font-weight: 700;
-  }
-  .out-stock {
-    color: #ff7777;
-    font-style: italic;
-  }
-  #last-updated {
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    font-style: italic;
-    color: #b594ff;
-    text-align: center;
-    user-select: none;
-  }
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    20%, 60% { transform: translateX(-10px); }
-    40%, 80% { transform: translateX(10px); }
-  }
-  .shake {
-    animation: shake 0.5s ease-in-out;
-  }
-  .flash-red {
-    background-color: #7e1a1a !important;
-    transition: background-color 0.3s ease;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Grow-A-Garden Tracker</title>
+  <style>
+    body {
+      background-color: #000;
+      color: #ddd;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 1.5rem 1rem 3rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    h1 {
+      color: #bb80ff;
+      margin: 0 0 0.3rem;
+      font-weight: 700;
+      text-shadow: 0 0 8px #9b59b6;
+    }
+    #restock-timer {
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: #a474ff;
+      margin: 1rem 0 2rem;
+      text-align: center;
+      text-shadow: 0 0 12px #8e44ad;
+    }
+    #last-updated {
+      font-size: 0.9rem;
+      font-style: italic;
+      color: #b594ff;
+      margin-bottom: 1rem;
+    }
+    .section {
+      background-color: #1a0d38;
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      margin: 1rem 0;
+      width: 100%;
+      max-width: 700px;
+      box-shadow: 0 0 20px #8e44ad99;
+    }
+    .section h2 {
+      font-size: 1.6rem;
+      color: #c8a2ff;
+      margin: 0 0 0.5rem;
+    }
+    .item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid #4b297b;
+    }
+    .in-stock {
+      color: #7df57d;
+      font-weight: 700;
+    }
+    .out-stock {
+      color: #ff7777;
+      font-style: italic;
+    }
+  </style>
 </head>
 <body>
 
 <h1>🌱 Grow-A-Garden Tracker</h1>
-<div id="restock-timer">Loading restock timer...</div>
-
-<div id="buttons">
-  <button id="btn-seeds" class="active">Seeds</button>
-  <button id="btn-gear">Gear</button>
-</div>
-
-<button id="toggle-out-stock">Show Out-of-Stock Items</button>
-
-<div id="content-wrapper">
-  <div id="content">Loading...</div>
-  <div id="out-stock-list"></div>
-</div>
-
+<div id="restock-timer">Loading...</div>
 <div id="last-updated"></div>
+<div id="sections"></div>
 
 <script>
   const API_URL = 'https://corsproxy.io/?https://gagstock.gleeze.com/grow-a-garden';
-  const FETCH_INTERVAL = 5000; // full data refresh every 5 seconds
+  const FETCH_INTERVAL = 5000;
 
-  const RARE_ITEMS = new Set([
-    "Beanstalk",
-    "Ember Lily",
-    "Sugar Apple",
-    "Burning Bud",
-    "Blueberry"
-  ]);
-
-  const FIXED_GEAR = [
-    "Master Sprinkler",
-    "Cleaning Spray",
-    "Favorite Tool",
-    "Harvest Tool",
-    "Friendship Pot",
-    "Godly Sprinkler",
-    "Advanced Sprinkler",
-    "Basic Sprinkler",
-    "Trowel",
-    "Recall Wrench",
-    "Watering Can"
-  ];
-  const FIXED_SEEDS = [
-    "Carrot","Strawberry","Blueberry","Orange Tulip","Tomato","Daffodil","Watermelon",
-    "Pumpkin","Apple","Bamboo","Coconut","Cactus","Dragon Fruit","Mango","Grape",
-    "Mushroom","Pepper","Cacao","Beanstalk","Ember Lily","Sugar Apple","Burning Bud"
-  ];
-
-  let notifiedItems = new Set();
-  let lastSeenTimestamps = JSON.parse(localStorage.getItem('lastSeen') || '{}');
-
-  const contentEl = document.getElementById('content');
-  const outStockEl = document.getElementById('out-stock-list');
   const lastUpdatedEl = document.getElementById('last-updated');
   const restockTimerEl = document.getElementById('restock-timer');
-  const btnSeeds = document.getElementById('btn-seeds');
-  const btnGear = document.getElementById('btn-gear');
-  const toggleOutStockBtn = document.getElementById('toggle-out-stock');
+  const sectionsEl = document.getElementById('sections');
 
-  let currentCategory = 'seed';
-  let currentData = null;
-  let showOutStock = false;
-  let liveTimerSeconds = null;
-  let liveTimerInterval = null;
+  let countdownSeconds = 0;
+  let countdownInterval;
 
-  btnSeeds.onclick = () => {
-    currentCategory = 'seed';
-    btnSeeds.classList.add('active');
-    btnGear.classList.remove('active');
-    render(currentData);
-  };
-
-  btnGear.onclick = () => {
-    currentCategory = 'gear';
-    btnGear.classList.add('active');
-    btnSeeds.classList.remove('active');
-    render(currentData);
-  };
-
-  toggleOutStockBtn.onclick = () => {
-    showOutStock = !showOutStock;
-    outStockEl.style.display = showOutStock ? 'block' : 'none';
-    toggleOutStockBtn.textContent = showOutStock ? 'Hide Out-of-Stock Items' : 'Show Out-of-Stock Items';
-  };
-
-  function timeAgo(ts) {
-    if (!ts) return 'never';
-    const seconds = Math.floor((Date.now() - ts) / 1000);
-    if (seconds < 60) return seconds + 's ago';
-    if (seconds < 3600) return Math.floor(seconds/60) + 'm ago';
-    if (seconds < 86400) return Math.floor(seconds/3600) + 'h ago';
-    return Math.floor(seconds/86400) + 'd ago';
-  }
-
-  function formatTimeLeft(seconds) {
-    if (seconds <= 0) return "Restocking now";
-    const m = Math.floor(seconds / 60);
+  function secondsToHMS(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
-    if (m > 0) return `${m}m ${s}s until restock`;
-    return `${s}s until restock`;
+    return `${h > 0 ? h + 'h ' : ''}${m > 0 ? m + 'm ' : ''}${s}s`;
   }
 
-  function updateLastSeen(category, items) {
-    const now = Date.now();
-    items.forEach(item => {
-      if (item.quantity > 0) {
-        lastSeenTimestamps[category + ':' + item.name] = now;
-      } else if (!lastSeenTimestamps[category + ':' + item.name]) {
-        lastSeenTimestamps[category + ':' + item.name] = null;
-      }
-    });
-    localStorage.setItem('lastSeen', JSON.stringify(lastSeenTimestamps));
-  }
-
-  function triggerWarning() {
-    document.body.classList.add('flash-red', 'shake');
-    setTimeout(() => {
-      document.body.classList.remove('shake');
-    }, 500);
-    setTimeout(() => {
-      document.body.classList.remove('flash-red');
-    }, 1000);
-  }
-
-  function showNotification(item) {
-    if (Notification.permission === 'granted') {
-      new Notification('🌟 Rare Seed Alert', {
-        body: `${item.name} is in stock! (x${item.quantity})`,
-        icon: 'https://em-content.zobj.net/source/twitter/376/glowing-star_1f31f.png'
-      });
-    }
-    triggerWarning();
-  }
-
-  function checkNotifications(data) {
-    if (!data) return;
-    const group = data[currentCategory];
-    if (!group) return;
-
-    group.items.forEach(item => {
-      if (RARE_ITEMS.has(item.name) && item.quantity > 0 && !notifiedItems.has(item.name)) {
-        showNotification(item);
-        notifiedItems.add(item.name);
-      }
-    });
-  }
-
-  function getNextRestockSeconds(data) {
-    if (!data) return null;
-    let times = [];
-    ['seed','gear'].forEach(cat => {
-      if (data[cat]?.items) {
-        data[cat].items.forEach(i => {
-          if (typeof i.restock_seconds === 'number' && i.restock_seconds > 0) {
-            times.push(i.restock_seconds);
-          }
-        });
-      }
-    });
-    if (times.length === 0) return null;
-    return Math.min(...times);
-  }
-
-  function anyInStock(category, data) {
-    if (!data) return false;
-    const catItems = data[category]?.items || [];
-    return catItems.some(i => i.quantity > 0);
-  }
-
-  function startLiveTimer(seconds) {
-    clearInterval(liveTimerInterval);
-    liveTimerSeconds = seconds;
-
-    if (liveTimerSeconds === null || liveTimerSeconds <= 0) {
-      restockTimerEl.textContent = anyInStock(currentCategory, currentData)
-        ? "Currently fully stocked"
-        : "Waiting for restock...";
+  function updateCountdownDisplay() {
+    if (countdownSeconds <= 0) {
+      restockTimerEl.textContent = "Restocking now...";
       return;
     }
-
-    restockTimerEl.textContent = formatTimeLeft(liveTimerSeconds);
-
-    liveTimerInterval = setInterval(() => {
-      liveTimerSeconds--;
-      if (liveTimerSeconds <= 0) {
-        clearInterval(liveTimerInterval);
-        restockTimerEl.textContent = "Restocking now...";
-        fetchAndRender();
-      } else {
-        restockTimerEl.textContent = formatTimeLeft(liveTimerSeconds);
-      }
-    }, 1000);
+    restockTimerEl.textContent = "Restock in: " + secondsToHMS(countdownSeconds);
+    countdownSeconds--;
   }
 
-  function render(data) {
-    if (!data) {
-      contentEl.textContent = '⚠️ Failed to load stock.';
-      restockTimerEl.textContent = '';
-      lastUpdatedEl.textContent = '';
-      outStockEl.style.display = 'none';
-      toggleOutStockBtn.style.display = 'none';
-      return;
-    }
-    currentData = data;
-
-    const nextRestock = getNextRestockSeconds(data);
-    startLiveTimer(nextRestock);
-
-    toggleOutStockBtn.style.display = 'inline-block';
-
-    let itemsToShow = [];
-    if (currentCategory === 'gear') {
-      const gearItems = data.gear?.items || [];
-      const gearMap = new Map(gearItems.map(i => [i.name, i]));
-      itemsToShow = FIXED_GEAR.map(name => {
-        const item = gearMap.get(name);
-        return {
-          name,
-          quantity: item ? item.quantity : 0,
-        };
-      });
-    } else {
-      const seedItems = data.seed?.items || [];
-      const seedMap = new Map(seedItems.map(i => [i.name, i]));
-      itemsToShow = FIXED_SEEDS.map(name => {
-        const item = seedMap.get(name);
-        return {
-          name,
-          quantity: item ? item.quantity : 0,
-        };
-      });
-    }
-
-    updateLastSeen(currentCategory, itemsToShow);
-
-    const inStock = itemsToShow.filter(i => i.quantity > 0);
-    const outStock = itemsToShow.filter(i => i.quantity <= 0);
-
-    contentEl.innerHTML = inStock.length
-      ? inStock.map(item => `<div class="item in-stock">${item.name} <span>✅ In stock x${item.quantity}</span></div>`).join('')
-      : '<div>No items in stock.</div>';
-
-    outStockEl.innerHTML = outStock.length
-      ? outStock.map(item => {
-          const last = lastSeenTimestamps[currentCategory + ':' + item.name];
-          return `<div class="item out-stock">${item.name} <span>❌ Last seen ${timeAgo(last)}</span></div>`;
-        }).join('')
-      : '<div>No out-of-stock items.</div>';
-
-    if (!showOutStock) outStockEl.style.display = 'none';
-
-    lastUpdatedEl.textContent = 'Last updated: ' + new Date(data.updated_at || Date.now()).toLocaleTimeString();
-
-    checkNotifications(data);
+  function startCountdown(seconds) {
+    countdownSeconds = seconds;
+    updateCountdownDisplay();
+    clearInterval(countdownInterval);
+    countdownInterval = setInterval(updateCountdownDisplay, 1000);
   }
 
   async function fetchData() {
     try {
       const res = await fetch(API_URL);
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      if (!res.ok) throw new Error("Failed to fetch");
       const json = await res.json();
       return json.data;
     } catch (e) {
-      console.error('Error fetching stock:', e);
+      console.error("Fetch error:", e);
+      restockTimerEl.textContent = "⚠️ API error";
       return null;
     }
   }
 
-  async function fetchAndRender() {
+  function render(data) {
+    if (!data) return;
+    lastUpdatedEl.textContent = "Last updated: " + new Date(data.updated_at || Date.now()).toLocaleTimeString();
+    sectionsEl.innerHTML = '';
+
+    const group = data.seed;
+    if (!group) return;
+
+    startCountdown(parseCountdown(group.countdown));
+
+    const section = document.createElement('div');
+    section.className = 'section';
+    section.innerHTML = `
+      <h2>SEEDS</h2>
+      ${group.items.map(item => `
+        <div class="item">
+          <span>${item.name}</span>
+          <span class="${item.quantity > 0 ? 'in-stock' : 'out-stock'}">
+            ${item.quantity > 0 ? `x${item.quantity}` : 'Out of stock'}
+          </span>
+        </div>
+      `).join('')}
+    `;
+    sectionsEl.appendChild(section);
+  }
+
+  function parseCountdown(str) {
+    if (!str || typeof str !== 'string') return 0;
+    const parts = str.split(':');
+    if (parts.length !== 3) return 0;
+    const [h, m, s] = parts.map(Number);
+    return (h * 3600) + (m * 60) + s;
+  }
+
+  async function refresh() {
     const data = await fetchData();
-    render(data);
+    if (data) render(data);
   }
 
-  async function start() {
-    if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-      await Notification.requestPermission();
-    }
-    await fetchAndRender();
-    setInterval(fetchAndRender, FETCH_INTERVAL);
-  }
-
-  start();
+  refresh();
+  setInterval(refresh, FETCH_INTERVAL);
 </script>
 
 </body>
