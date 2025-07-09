@@ -1,251 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Grow-A-Garden Tracker</title>
-<style>
-  body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #000;
-    color: #ddd;
-    padding: 2rem;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  h1 {
-    font-size: 3rem;
-    margin-bottom: 1.5rem;
-    color: #b388eb;
-    text-shadow: 0 0 8px #a57adecc;
-  }
-  #last-updated {
-    font-size: 1.2rem;
-    margin-bottom: 1rem;
-    color: #c8a2ff;
-  }
-  .section {
-    background-color: #1e0f44;
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    width: 100%;
-    max-width: 700px;
-    box-shadow: 0 0 30px 8px rgba(180, 125, 255, 0.7);
-    cursor: pointer;
-  }
-  .section h2 {
-    font-size: 2rem;
-    color: #c8a2ff;
-  }
-  .timer {
-    font-weight: 600;
-    color: #d1b3ff;
-    margin-bottom: 1rem;
-  }
-  .item {
-    font-size: 1.1rem;
-    margin: 0.3rem 0;
-  }
-  .in-stock {
-    color: #8effa3;
-  }
-  .out-stock {
-    color: #ff8787;
-  }
-  .modal {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: #1e0f44;
-    border-radius: 12px;
-    padding: 2rem;
-    box-shadow: 0 0 30px 10px rgba(180, 125, 255, 0.9);
-    z-index: 999;
-    max-height: 80vh;
-    overflow-y: auto;
-    max-width: 600px;
-    width: 90%;
-  }
-  .modal h3 {
-    color: #c8a2ff;
-    margin-top: 0;
-  }
-  .modal-close {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 1.5rem;
-    color: #c8a2ff;
-    cursor: pointer;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Grow-A-Garden Tracker</title>
+  <style>
+    body {
+      background: #000;
+      color: #ddd;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      color: #b388eb;
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px #a57adecc;
+    }
+    #stock-list {
+      max-width: 600px;
+      margin: auto;
+      text-align: left;
+      background: #1e0f44;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px 6px rgba(180, 125, 255, 0.7);
+    }
+    .item {
+      margin: 5px 0;
+      font-size: 1.2rem;
+    }
+    .in-stock {
+      color: #8effa3;
+    }
+    .out-stock {
+      color: #ff8787;
+    }
+  </style>
 </head>
 <body>
-<h1>🌱 Grow-A-Garden Tracker</h1>
-<div id="last-updated"></div>
-<div id="sections"></div>
+  <h1>🌱 Grow-A-Garden Tracker</h1>
+  <div id="stock-list">Loading stock...</div>
 
-<div class="modal" id="itemModal">
-  <div class="modal-close" onclick="document.getElementById('itemModal').style.display='none'">&times;</div>
-  <h3 id="modalTitle"></h3>
-  <div id="modalContent"></div>
-</div>
+  <script>
+    const RARE_ITEM_NAMES = [
+      "Beanstalk",
+      "Ember Lily",
+      "Sugar Apple",
+      "Burning Bud",
+      "Blueberry"  // added for test notification
+    ];
 
-<script>
-const API_URL = '/api/stock';
-const FETCH_INTERVAL = 1000;
-let lastSeen = JSON.parse(localStorage.getItem('lastSeen') || '{}');
-let currentData = null;
-let notifiedItems = new Set();
+    let notifiedItems = new Set();
 
-const RARE_ITEM_NAMES = ["Beanstalk", "Ember Lily", "Sugar Apple", "Burning Bud", "Carrot"];
-const fixedGearItems = [
-  "Master Sprinkler", "Cleaning Spray", "Favorite Tool", "Harvest Tool", "Friendship Pot",
-  "Godly Sprinkler", "Advanced Sprinkler", "Basic Sprinkler",
-  "Trowel", "Recall Wrench", "Watering Can"
-];
-const fixedSeedItems = [
-  "Carrot", "Strawberry", "Blueberry", "Orange Tulip", "Tomato", "Daffodil", "Watermelon",
-  "Pumpkin", "Apple", "Bamboo", "Coconut", "Cactus", "Dragon Fruit", "Mango", "Grape",
-  "Mushroom", "Pepper", "Cacao", "Beanstalk", "Ember Lily", "Sugar Apple", "Burning Bud"
-];
-
-function secondsToHMS(seconds) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  return `${h ? h + 'h ' : ''}${m ? m + 'm ' : ''}${s}s`;
-}
-
-function timeAgo(timestamp) {
-  if (!timestamp) return 'never';
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  return secondsToHMS(seconds);
-}
-
-function showNotification(message) {
-  if (Notification.permission === "granted") {
-    new Notification("🌟 Rare Seed Alert", {
-      body: message,
-      icon: "https://em-content.zobj.net/source/twitter/376/glowing-star_1f31f.png"
-    });
-  }
-}
-
-function checkRareItems(data) {
-  if (!data) return;
-  const categories = Object.keys(data);
-  for (const category of categories) {
-    const items = data[category]?.items || [];
-    for (const item of items) {
-      if (RARE_ITEM_NAMES.includes(item.name) && !notifiedItems.has(item.name)) {
-        showNotification(`${item.name} is in stock! (${item.quantity} available)`);
-        notifiedItems.add(item.name);
+    async function requestNotificationPermission() {
+      if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        await Notification.requestPermission();
       }
     }
-  }
-}
 
-function updateLastSeen(category, items) {
-  const now = Date.now();
-  const prefix = category + ':';
-  items.forEach(item => {
-    lastSeen[prefix + item.name] = now;
-  });
-  localStorage.setItem('lastSeen', JSON.stringify(lastSeen));
-}
-
-function showModal(category) {
-  const modal = document.getElementById('itemModal');
-  const title = document.getElementById('modalTitle');
-  const content = document.getElementById('modalContent');
-  const group = currentData[category];
-  const prefix = category + ':';
-  let allItems = [];
-
-  if (category === 'gear') allItems = fixedGearItems;
-  else if (category === 'seed') allItems = fixedSeedItems;
-  else {
-    allItems = Array.from(new Set([
-      ...Object.keys(lastSeen).filter(k => k.startsWith(prefix)).map(k => k.slice(prefix.length)),
-      ...group.items.map(i => i.name)
-    ]));
-  }
-
-  const nowStock = new Map(group.items.map(i => [i.name, i]));
-  const html = allItems.map(name => {
-    const item = nowStock.get(name);
-    if (item && item.quantity > 0) {
-      return `<div class="item in-stock">${item.emoji || ''} ${name}: ✅ x${item.quantity}</div>`;
-    } else {
-      const last = lastSeen[prefix + name];
-      return `<div class="item out-stock">${name}: ❌ Last seen ${timeAgo(last)} ago</div>`;
+    function showNotification(item) {
+      if (Notification.permission === "granted") {
+        new Notification("🌟 Rare Seed Alert", {
+          body: `${item.name} is in stock! (x${item.quantity})`,
+          icon: "https://em-content.zobj.net/source/twitter/376/glowing-star_1f31f.png"
+        });
+      }
     }
-  }).join('');
 
-  title.textContent = category.toUpperCase() + ' ITEMS';
-  content.innerHTML = html;
-  modal.style.display = 'block';
-}
+    function renderStock(data) {
+      if (!data) {
+        document.getElementById('stock-list').textContent = "Failed to load stock.";
+        return;
+      }
 
-function render(data) {
-  if (!data) return;
-  currentData = data;
-  const container = document.getElementById('sections');
-  const updated = document.getElementById('last-updated');
-  container.innerHTML = '';
-  updated.textContent = 'Last Updated: ' + new Date(data.updated_at || Date.now()).toLocaleTimeString();
+      let html = "";
 
-  const categories = ['gear', 'egg', 'seed', 'honey', 'cosmetics'];
-  categories.forEach(category => {
-    const group = data[category];
-    if (!group) return;
-    updateLastSeen(category, group.items);
+      // We'll show seeds stock directly here for simplicity:
+      const seeds = data.seed?.items || [];
 
-    const section = document.createElement('div');
-    section.className = 'section';
-    section.innerHTML = `
-      <h2>${category.toUpperCase()}</h2>
-      <div class="timer">Restocks in: ${group.countdown}</div>
-      ${group.items.map(i => `<div class="item in-stock">${i.emoji || ''} ${i.name}: ✅ x${i.quantity}</div>`).join('')}
-    `;
-    section.addEventListener('click', () => showModal(category));
-    container.appendChild(section);
-  });
-}
+      seeds.forEach(item => {
+        html += `<div class="item ${item.quantity > 0 ? 'in-stock' : 'out-stock'}">
+          ${item.name}: ${item.quantity > 0 ? `✅ In stock x${item.quantity}` : `❌ Out of stock`}
+        </div>`;
+      });
 
-async function start() {
-  if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-    Notification.requestPermission();
-  }
-  const data = await fetchData();
-  render(data);
-  checkRareItems(data);
-  setInterval(async () => {
-    const newData = await fetchData();
-    render(newData);
-    checkRareItems(newData);
-  }, FETCH_INTERVAL);
-}
+      document.getElementById('stock-list').innerHTML = html || "No seeds found.";
+    }
 
-async function fetchData() {
-  try {
-    const res = await fetch(API_URL);
-    if (!res.ok) throw new Error("Status: " + res.status);
-    const json = await res.json();
-    return json.data;
-  } catch (err) {
-    console.error('Fetch error:', err);
-    return null;
-  }
-}
+    async function fetchStockData() {
+      try {
+        const response = await fetch('/api/stock');
+        if (!response.ok) throw new Error("Network response was not ok");
+        const json = await response.json();
+        return json.data;
+      } catch (error) {
+        console.error("Failed to fetch stock data:", error);
+        return null;
+      }
+    }
 
-start();
-</script>
+    async function checkRareItems(data) {
+      if (!data) return;
+
+      const seeds = data.seed?.items || [];
+      seeds.forEach(item => {
+        if (
+          RARE_ITEM_NAMES.includes(item.name) &&
+          !notifiedItems.has(item.name) &&
+          item.quantity > 0
+        ) {
+          showNotification(item);
+          notifiedItems.add(item.name);
+        }
+      });
+    }
+
+    async function startTracker() {
+      await requestNotificationPermission();
+
+      const update = async () => {
+        const data = await fetchStockData();
+        renderStock(data);
+        checkRareItems(data);
+      };
+
+      await update();
+      setInterval(update, 1000);
+    }
+
+    startTracker();
+  </script>
 </body>
 </html>
