@@ -1,401 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Grow-A-Garden Tracker with Live Timer & Notifications</title>
-<style>
-  body {
-    background-color: #000;
-    color: #a474ff;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-    padding: 2rem 1rem 3rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-  h1 {
-    color: #bb80ff;
-    margin: 0 0 0.3rem;
-    font-weight: 700;
-    text-shadow: 0 0 8px #9b59b6;
-    user-select: none;
-  }
-  #restock-timer {
-    font-size: 4rem;
-    font-weight: 700;
-    color: #a474ff;
-    margin-bottom: 1rem;
-    min-width: 280px;
-    text-align: center;
-    text-shadow: 0 0 12px #8e44ad;
-    user-select: none;
-  }
-  #buttons {
-    margin-bottom: 1.5rem;
-  }
-  button {
-    background: transparent;
-    border: 2px solid #9b59b6;
-    color: #bb80ff;
-    font-weight: 600;
-    font-size: 1.1rem;
-    padding: 0.5rem 1.5rem;
-    margin: 0 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    user-select: none;
-  }
-  button:hover {
-    background: #9b59b6;
-    color: #000;
-  }
-  button.active {
-    background: #8e44ad;
-    color: #fff;
-    border-color: #8e44ad;
-    box-shadow: 0 0 10px #8e44adaa;
-  }
-  #toggle-out-stock {
-    margin-bottom: 1rem;
-    border-color: #bb80ff;
-    color: #bb80ff;
-  }
-  #toggle-out-stock:hover {
-    background: #bb80ff;
-    color: #000;
-  }
-  #content-wrapper {
-    display: flex;
-    gap: 2rem;
-    width: 100%;
-    max-width: 900px;
-  }
-  #content {
-    background-color: #1a0d38;
-    border-radius: 12px;
-    padding: 1rem 2rem;
-    flex-grow: 1;
-    font-size: 1.15rem;
-    box-shadow: 0 0 20px #8e44ad99;
-    user-select: none;
-    max-height: 600px;
-    overflow-y: auto;
-  }
-  #out-stock-list {
-    background-color: #2a1a56;
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
-    width: 320px;
-    font-size: 1rem;
-    box-shadow: 0 0 20px #6e2ecccc;
-    user-select: none;
-    display: none;
-    max-height: 600px;
-    overflow-y: auto;
-  }
-  .item {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.6rem 0;
-    border-bottom: 1px solid #4b297b;
-  }
-  .item:last-child {
-    border-bottom: none;
-  }
-  .in-stock {
-    color: #7df57d;
-    font-weight: 700;
-  }
-  .out-stock {
-    color: #ff7777;
-    font-style: italic;
-  }
-  #last-updated {
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    font-style: italic;
-    color: #b594ff;
-    text-align: center;
-    user-select: none;
-  }
-  #error {
-    color: #ff6666;
-    margin-top: 1rem;
-    user-select: none;
-  }
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    20%, 60% { transform: translateX(-10px); }
-    40%, 80% { transform: translateX(10px); }
-  }
-  .shake {
-    animation: shake 0.5s ease-in-out;
-  }
-  .flash-red {
-    background-color: #7e1a1a !important;
-    transition: background-color 0.3s ease;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Grow-A-Garden Tracker</title>
+  <style>
+    body {
+      background: #000;
+      color: #a474ff;
+      font-family: sans-serif;
+      padding: 2rem;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2.5rem;
+      color: #bb80ff;
+      text-shadow: 0 0 8px #9b59b6;
+    }
+    #restock-timer {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #fff;
+      margin: 1rem 0;
+      text-shadow: 0 0 8px #8e44ad;
+    }
+    #content {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+    }
+    .item {
+      background: #1a0d38;
+      border: 2px solid #8e44ad;
+      padding: 1rem;
+      border-radius: 8px;
+      min-width: 160px;
+      box-shadow: 0 0 12px #8e44ad99;
+    }
+    .in-stock {
+      color: #7df57d;
+      font-weight: bold;
+    }
+    .out-stock {
+      color: #ff7777;
+      font-style: italic;
+    }
+  </style>
 </head>
 <body>
+  <h1>🌱 Grow-A-Garden Tracker</h1>
+  <div id="restock-timer">Loading...</div>
+  <div id="content">Fetching stock data...</div>
 
-<h1>🌱 Grow-A-Garden Tracker</h1>
-<div id="restock-timer">0</div>
+  <script>
+    const API_URL = 'https://corsproxy.io/?https://gagstock.gleeze.com/grow-a-garden';
+    const restockTimerEl = document.getElementById('restock-timer');
+    const contentEl = document.getElementById('content');
 
-<div id="buttons">
-  <button id="btn-seeds" class="active">Seeds</button>
-  <button id="btn-gear">Gear</button>
-</div>
+    function parseCountdown(str) {
+      const [h, m, s] = str.split(':').map(Number);
+      return h * 3600 + m * 60 + s;
+    }
 
-<button id="toggle-out-stock">Show Out-of-Stock Items</button>
+    function secondsToTime(secs) {
+      const h = String(Math.floor(secs / 3600)).padStart(2, '0');
+      const m = String(Math.floor((secs % 3600) / 60)).padStart(2, '0');
+      const s = String(secs % 60).padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
 
-<div id="content-wrapper">
-  <div id="content">Loading...</div>
-  <div id="out-stock-list"></div>
-</div>
-
-<div id="last-updated"></div>
-<div id="error"></div>
-
-<script>
-  const API_URL = 'https://corsproxy.io/?https://gagstock.gleeze.com/grow-a-garden';
-
-  const RARE_ITEMS = new Set([
-    "Beanstalk",
-    "Ember Lily",
-    "Sugar Apple",
-    "Burning Bud",
-    "Blueberry"
-  ]);
-
-  const FIXED_GEAR = [
-    "Master Sprinkler",
-    "Cleaning Spray",
-    "Favorite Tool",
-    "Harvest Tool",
-    "Friendship Pot",
-    "Godly Sprinkler",
-    "Advanced Sprinkler",
-    "Basic Sprinkler",
-    "Trowel",
-    "Recall Wrench",
-    "Watering Can"
-  ];
-  const FIXED_SEEDS = [
-    "Carrot","Strawberry","Blueberry","Orange Tulip","Tomato","Daffodil","Watermelon",
-    "Pumpkin","Apple","Bamboo","Coconut","Cactus","Dragon Fruit","Mango","Grape",
-    "Mushroom","Pepper","Cacao","Beanstalk","Ember Lily","Sugar Apple","Burning Bud"
-  ];
-
-  let notifiedItems = new Set();
-  let lastSeenTimestamps = JSON.parse(localStorage.getItem('lastSeen') || '{}');
-
-  const contentEl = document.getElementById('content');
-  const outStockEl = document.getElementById('out-stock-list');
-  const lastUpdatedEl = document.getElementById('last-updated');
-  const restockTimerEl = document.getElementById('restock-timer');
-  const errorEl = document.getElementById('error');
-  const btnSeeds = document.getElementById('btn-seeds');
-  const btnGear = document.getElementById('btn-gear');
-  const toggleOutStockBtn = document.getElementById('toggle-out-stock');
-
-  let currentCategory = 'seed';
-  let currentData = null;
-  let showOutStock = false;
-
-  btnSeeds.onclick = () => {
-    currentCategory = 'seed';
-    btnSeeds.classList.add('active');
-    btnGear.classList.remove('active');
-    render(currentData);
-  };
-
-  btnGear.onclick = () => {
-    currentCategory = 'gear';
-    btnGear.classList.add('active');
-    btnSeeds.classList.remove('active');
-    render(currentData);
-  };
-
-  toggleOutStockBtn.onclick = () => {
-    showOutStock = !showOutStock;
-    outStockEl.style.display = showOutStock ? 'block' : 'none';
-    toggleOutStockBtn.textContent = showOutStock ? 'Hide Out-of-Stock Items' : 'Show Out-of-Stock Items';
-  };
-
-  function timeAgo(ts) {
-    if (!ts) return 'never';
-    const seconds = Math.floor((Date.now() - ts) / 1000);
-    if (seconds < 60) return seconds + 's ago';
-    if (seconds < 3600) return Math.floor(seconds/60) + 'm ago';
-    if (seconds < 86400) return Math.floor(seconds/3600) + 'h ago';
-    return Math.floor(seconds/86400) + 'd ago';
-  }
-
-  function updateLastSeen(category, items) {
-    const now = Date.now();
-    items.forEach(item => {
-      if (item.quantity > 0) {
-        lastSeenTimestamps[category + ':' + item.name] = now;
-      } else if (!lastSeenTimestamps[category + ':' + item.name]) {
-        lastSeenTimestamps[category + ':' + item.name] = null;
+    async function fetchData() {
+      try {
+        const res = await fetch(API_URL);
+        const json = await res.json();
+        return json.data;
+      } catch (err) {
+        restockTimerEl.textContent = '⚠️ API Error';
+        console.error(err);
+        return null;
       }
-    });
-    localStorage.setItem('lastSeen', JSON.stringify(lastSeenTimestamps));
-  }
-
-  function triggerWarning() {
-    document.body.classList.add('flash-red', 'shake');
-    setTimeout(() => {
-      document.body.classList.remove('shake');
-    }, 500);
-    setTimeout(() => {
-      document.body.classList.remove('flash-red');
-    }, 1000);
-  }
-
-  function showNotification(item) {
-    if (Notification.permission === 'granted') {
-      new Notification('🌟 Rare Seed Alert', {
-        body: `${item.name} is in stock! (x${item.quantity})`,
-        icon: 'https://em-content.zobj.net/source/twitter/376/glowing-star_1f31f.png'
-      });
-    }
-    triggerWarning();
-  }
-
-  function checkNotifications(data) {
-    if (!data) return;
-    const group = data[currentCategory];
-    if (!group) return;
-
-    group.items.forEach(item => {
-      if (RARE_ITEMS.has(item.name) && item.quantity > 0 && !notifiedItems.has(item.name)) {
-        showNotification(item);
-        notifiedItems.add(item.name);
-      }
-    });
-  }
-
-  function getNextRestockSeconds(data) {
-    if (!data) return 0;
-    let times = [];
-    ['seed','gear'].forEach(cat => {
-      if (data[cat]?.items) {
-        data[cat].items.forEach(i => {
-          if (typeof i.restock_seconds === 'number' && i.restock_seconds > 0) {
-            times.push(i.restock_seconds);
-          }
-        });
-      }
-    });
-    if (times.length === 0) return 0;
-    return Math.min(...times);
-  }
-
-  function render(data) {
-    if (!data) {
-      contentEl.textContent = '⚠️ Failed to load stock.';
-      restockTimerEl.textContent = '0';
-      lastUpdatedEl.textContent = '';
-      outStockEl.style.display = 'none';
-      toggleOutStockBtn.style.display = 'none';
-      return;
-    }
-    currentData = data;
-
-    toggleOutStockBtn.style.display = 'inline-block';
-
-    let itemsToShow = [];
-    if (currentCategory === 'gear') {
-      const gearItems = data.gear?.items || [];
-      const gearMap = new Map(gearItems.map(i => [i.name, i]));
-      itemsToShow = FIXED_GEAR.map(name => {
-        const item = gearMap.get(name);
-        return {
-          name,
-          quantity: item ? item.quantity : 0,
-        };
-      });
-    } else {
-      const seedItems = data.seed?.items || [];
-      const seedMap = new Map(seedItems.map(i => [i.name, i]));
-      itemsToShow = FIXED_SEEDS.map(name => {
-        const item = seedMap.get(name);
-        return {
-          name,
-          quantity: item ? item.quantity : 0,
-        };
-      });
     }
 
-    updateLastSeen(currentCategory, itemsToShow);
+    async function updateUI() {
+      const data = await fetchData();
+      if (!data) return;
 
-    const inStock = itemsToShow.filter(i => i.quantity > 0);
-    const outStock = itemsToShow.filter(i => i.quantity <= 0);
+      const seedTime = parseCountdown(data.seed.countdown || "00:00:00");
+      const gearTime = parseCountdown(data.gear.countdown || "00:00:00");
+      const nextRestockSeconds = Math.min(seedTime, gearTime);
+      restockTimerEl.textContent = secondsToTime(nextRestockSeconds);
 
-    contentEl.innerHTML = inStock.length
-      ? inStock.map(item => `<div class="item in-stock">${item.name} <span>✅ In stock x${item.quantity}</span></div>`).join('')
-      : '<div>No items in stock.</div>';
-
-    outStockEl.innerHTML = outStock.length
-      ? outStock.map(item => {
-          const last = lastSeenTimestamps[currentCategory + ':' + item.name];
-          return `<div class="item out-stock">${item.name} <span>❌ Last seen ${timeAgo(last)}</span></div>`;
-        }).join('')
-      : '<div>No out-of-stock items.</div>';
-
-    if (!showOutStock) outStockEl.style.display = 'none';
-
-    lastUpdatedEl.textContent = 'Last updated: ' + new Date(data.updated_at || Date.now()).toLocaleTimeString();
-
-    checkNotifications(data);
-  }
-
-  async function fetchData() {
-    try {
-      errorEl.textContent = '';
-      const response = await fetch(API_URL);
-      if (!response.ok) throw new Error(`API responded with status ${response.status}`);
-      const json = await response.json();
-      return json.data;
-    } catch (err) {
-      errorEl.textContent = 'Error loading stock data. Check console.';
-      console.error(err);
-      return null;
+      const allItems = [...(data.seed.items || []), ...(data.gear.items || [])];
+      contentEl.innerHTML = allItems.map(item => {
+        const isInStock = item.quantity > 0;
+        return `
+          <div class="item">
+            <div>${item.name}</div>
+            <div class="${isInStock ? 'in-stock' : 'out-stock'}">
+              ${isInStock ? `In stock x${item.quantity}` : 'Out of stock'}
+            </div>
+          </div>`;
+      }).join('');
     }
-  }
 
-  async function updateData() {
-    const data = await fetchData();
-    if (!data) {
-      restockTimerEl.textContent = '0';
-      return;
-    }
-    const restockSeconds = getNextRestockSeconds(data);
-    restockTimerEl.textContent = restockSeconds;
-    render(data);
-  }
-
-  function startCountdown() {
-    updateData(); // initial fetch & render
-    setInterval(updateData, 1000); // fetch fresh data every 1 sec
-  }
-
-  async function startApp() {
-    if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-      await Notification.requestPermission();
-    }
-    startCountdown();
-  }
-
-  startApp();
-</script>
-
+    setInterval(updateUI, 1000);
+    updateUI(); // initial
+  </script>
 </body>
 </html>
