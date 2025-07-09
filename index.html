@@ -88,7 +88,7 @@
     font-size: 1rem;
     box-shadow: 0 0 20px #6e2ecccc;
     user-select: none;
-    display: none; /* hidden by default */
+    display: none;
   }
   .item {
     display: flex;
@@ -150,7 +150,7 @@
 
 <script>
   const API_URL = 'https://corsproxy.io/?https://gagstock.gleeze.com/grow-a-garden';
-  const FETCH_INTERVAL = 5000; // fetch data every 5 seconds to reduce load
+  const FETCH_INTERVAL = 5000; // full data refresh every 5 seconds
 
   const RARE_ITEMS = new Set([
     "Beanstalk",
@@ -300,7 +300,6 @@
     return catItems.some(i => i.quantity > 0);
   }
 
-  // Live timer update function
   function startLiveTimer(seconds) {
     clearInterval(liveTimerInterval);
     liveTimerSeconds = seconds;
@@ -319,7 +318,6 @@
       if (liveTimerSeconds <= 0) {
         clearInterval(liveTimerInterval);
         restockTimerEl.textContent = "Restocking now...";
-        // Force a fresh fetch immediately:
         fetchAndRender();
       } else {
         restockTimerEl.textContent = formatTimeLeft(liveTimerSeconds);
@@ -368,7 +366,6 @@
 
     updateLastSeen(currentCategory, itemsToShow);
 
-    // Separate in-stock and out-of-stock
     const inStock = itemsToShow.filter(i => i.quantity > 0);
     const outStock = itemsToShow.filter(i => i.quantity <= 0);
 
@@ -412,7 +409,6 @@
       await Notification.requestPermission();
     }
     await fetchAndRender();
-    // Refresh full data every FETCH_INTERVAL (5s) to catch new items
     setInterval(fetchAndRender, FETCH_INTERVAL);
   }
 
