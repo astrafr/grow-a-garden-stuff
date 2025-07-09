@@ -163,7 +163,8 @@
 <div id="error"></div>
 
 <script>
-  const API_URL = 'https://corsproxy.io/?https://gagstock.gleeze.com/grow-a-garden';
+  // Use a more reliable CORS proxy here
+  const API_URL = 'https://api.allorigins.win/raw?url=https://gagstock.gleeze.com/grow-a-garden';
 
   const RARE_ITEMS = new Set([
     "Beanstalk",
@@ -186,6 +187,7 @@
     "Recall Wrench",
     "Watering Can"
   ];
+
   const FIXED_SEEDS = [
     "Carrot","Strawberry","Blueberry","Orange Tulip","Tomato","Daffodil","Watermelon",
     "Pumpkin","Apple","Bamboo","Coconut","Cactus","Dragon Fruit","Mango","Grape",
@@ -213,6 +215,7 @@
     btnSeeds.classList.add('active');
     btnGear.classList.remove('active');
     render(currentData);
+    resetRestockTimer();
   };
 
   btnGear.onclick = () => {
@@ -220,6 +223,7 @@
     btnGear.classList.add('active');
     btnSeeds.classList.remove('active');
     render(currentData);
+    resetRestockTimer();
   };
 
   toggleOutStockBtn.onclick = () => {
@@ -282,21 +286,18 @@
     });
   }
 
-  // Convert seconds to h m s string
-  function secondsToHMS(seconds) {
-    if (seconds < 0) seconds = 0;
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-    return `${h ? h + 'h ' : ''}${m ? m + 'm ' : ''}${s}s`;
-  }
-
-  // Get smallest restock_seconds from current category items
-  function getCategoryRestockSeconds(data, category) {
-    if (!data || !data[category] || !data[category].items) return 0;
-    let times = data[category].items
-      .filter(i => typeof i.restock_seconds === 'number' && i.restock_seconds > 0)
-      .map(i => i.restock_seconds);
+  function getNextRestockSeconds(data) {
+    if (!data) return 0;
+    let times = [];
+    ['seed','gear'].forEach(cat => {
+      if (data[cat]?.items) {
+        data[cat].items.forEach(i => {
+          if (typeof i.restock_seconds === 'number' && i.restock_seconds > 0) {
+            times.push(i.restock_seconds);
+          }
+        });
+      }
+    });
     if (times.length === 0) return 0;
     return Math.min(...times);
   }
@@ -366,6 +367,7 @@
       const response = await fetch(API_URL);
       if (!response.ok) throw new Error(`API responded with status ${response.status}`);
       const json = await response.json();
+      if (!json.data) throw new Error('Missing data field in API response');
       return json.data;
     } catch (err) {
       errorEl.textContent = 'Error loading stock data. Check console.';
@@ -376,6 +378,7 @@
 
   let restockSeconds = 0;
   let lastUpdateTimestamp = 0;
+  let countdownInterval = null;
 
   async function updateData() {
     const data = await fetchData();
@@ -384,72 +387,49 @@
       restockTimerEl.textContent = '0';
       return;
     }
-    currentData = data;
-
-    // Save the timestamp we got the data
+    restockSeconds = getNextRestockSeconds(data);
     lastUpdateTimestamp = Date.now();
-
-    // Get the smallest restock_seconds for the current category
-    restockSeconds = getCategoryRestockSeconds(data, currentCategory);
-
     render(data);
   }
 
-  function updateTimer() {
+  function secondsToHMS(seconds) {
+    if (seconds < 0) seconds = 0;
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    return `${h ? h + 'h ' : ''}${m ? m + 'm ' : ''}${s}s`;
+  }
+
+  function updateRestockTimer() {
     if (restockSeconds <= 0) {
       restockTimerEl.textContent = 'No upcoming restock';
       return;
     }
-    // Calculate elapsed time since last update
     const elapsed = Math.floor((Date.now() - lastUpdateTimestamp) / 1000);
     let timeLeft = restockSeconds - elapsed;
     if (timeLeft < 0) timeLeft = 0;
     restockTimerEl.textContent = secondsToHMS(timeLeft);
   }
 
-  // Main loop: fetch data every second, update timer every second
-  async function mainLoop() {
+  async function resetRestockTimer() {
     await updateData();
-    updateTimer();
-
-    setInterval(async () => {
-      await updateData();
-      updateTimer();
-    }, 1000);
-
-    // Also update the timer display every second in case fetch is slow
-    setInterval(() => {
-      updateTimer();
+    if (countdownInterval) clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => {
+      updateRestockTimer();
+      if (restockSeconds <= 0) {
+        updateData();
+      }
     }, 1000);
   }
 
-  btnSeeds.onclick = () => {
-    currentCategory = 'seed';
-    btnSeeds.classList.add('active');
-    btnGear.classList.remove('active');
-    if (currentData) render(currentData);
-  };
-
-  btnGear.onclick = () => {
-    currentCategory = 'gear';
-    btnGear.classList.add('active');
-    btnSeeds.classList.remove('active');
-    if (currentData) render(currentData);
-  };
-
-  toggleOutStockBtn.onclick = () => {
-    showOutStock = !showOutStock;
-    outStockEl.style.display = showOutStock ? 'block' : 'none';
-    toggleOutStockBtn.textContent = showOutStock ? 'Hide Out-of-Stock Items' : 'Show Out-of-Stock Items';
-  };
-
-  // Request notification permission at start
-  if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-    Notification.requestPermission();
+  async function startApp() {
+    if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      await Notification.requestPermission();
+    }
+    await resetRestockTimer();
   }
 
-  mainLoop();
-
+  startApp();
 </script>
 
 </body>
