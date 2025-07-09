@@ -293,6 +293,12 @@
     return Math.min(...times);
   }
 
+  function anyInStock(category, data) {
+    if (!data) return false;
+    const catItems = data[category]?.items || [];
+    return catItems.some(i => i.quantity > 0);
+  }
+
   function render(data) {
     if (!data) {
       contentEl.textContent = '⚠️ Failed to load stock.';
@@ -305,9 +311,13 @@
     currentData = data;
 
     const nextRestock = getNextRestockSeconds(data);
-    restockTimerEl.textContent = nextRestock !== null
-      ? formatTimeLeft(nextRestock)
-      : 'No upcoming restocks';
+    if (nextRestock !== null && nextRestock > 0) {
+      restockTimerEl.textContent = formatTimeLeft(nextRestock);
+    } else if (anyInStock(currentCategory, data)) {
+      restockTimerEl.textContent = "Currently fully stocked";
+    } else {
+      restockTimerEl.textContent = "Waiting for restock...";
+    }
 
     toggleOutStockBtn.style.display = 'inline-block';
 
