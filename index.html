@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF‑8">
-  <meta name="viewport" content="width=device‑width,initial‑scale=1.0">
-  <title>Grow-A-Garden Tracker</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Grow-A-Garden Tracker with Live Timer</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 2rem; background: #f4f4f4; color: #333; }
     h1 { text-align: center; margin-bottom: 1rem; }
     .section { background: white; padding: 1rem; margin-bottom: 1rem; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
     .section h2 { margin-top: 0; }
     .item { margin: 0.25rem 0; }
+    .timer { font-weight: bold; color: #006600; }
     .error { color: red; font-weight: bold; margin-top: 1rem; }
   </style>
 </head>
@@ -20,9 +21,28 @@
   <div id="error" class="error"></div>
 
   <script>
-    const API_URL = '/api/stock';
-    const REFRESH_INTERVAL = 15000; // 15 seconds
+    const API_URL = '/api/stock';  // your proxy URL here
+    const REFRESH_INTERVAL = 15 * 1000; // fetch new data every 15 seconds
+    const TIMER_TICK = 1000; // update timers every second
 
+    // Store countdown timers in seconds by category
+    let countdowns = {};
+
+    // Converts "HH:MM:SS" to seconds
+    function hmsToSeconds(hms) {
+      const [h, m, s] = hms.split(':').map(Number);
+      return h * 3600 + m * 60 + s;
+    }
+
+    // Converts seconds back to "HH:MM:SS"
+    function secondsToHms(seconds) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      return [h,m,s].map(v => v.toString().padStart(2, '0')).join(':');
+    }
+
+    // Fetch stock data from proxy API
     async function fetchData() {
       try {
         const res = await fetch(API_URL);
@@ -36,8 +56,11 @@
       }
     }
 
+    // Render the data on page
     function render(data) {
       if (!data) return;
+
+      countdowns = {}; // reset countdowns on new data
 
       const container = document.getElementById('sections');
       const updated = document.getElementById('last-updated');
@@ -49,9 +72,14 @@
       categories.forEach(category => {
         if (!data[category]) return;
 
+        // Parse countdown to seconds for live timer
+        countdowns[category] = hmsToSeconds(data[category].countdown);
+
         const section = document.createElement('div');
         section.className = 'section';
-        section.innerHTML = `<h2>${category.toUpperCase()} (Restocks in ${data[category].countdown})</h2>`;
+
+        // Add heading with live timer span
+        section.innerHTML = `<h2>${category.toUpperCase()} (Restocks in <span id="timer-${category}" class="timer">${data[category].countdown}</span>)</h2>`;
 
         data[category].items.forEach(item => {
           const el = document.createElement('div');
@@ -64,13 +92,35 @@
       });
     }
 
-    async function update() {
-      const data = await fetchData();
-      render(data);
+    // Update timers every second without fetching
+    function tickTimers() {
+      Object.keys(countdowns).forEach(category => {
+        if (countdowns[category] > 0) {
+          countdowns[category]--;
+          const timerEl = document.getElementById(`timer-${category}`);
+          if (timerEl) {
+            timerEl.textContent = secondsToHms(countdowns[category]);
+          }
+        }
+      });
     }
 
-    update();
-    setInterval(update, REFRESH_INTERVAL);
+    // Main refresh logic: fetch data, render, then update timers every second
+    async function start() {
+      const data = await fetchData();
+      render(data);
+
+      // Every second, tick timers
+      setInterval(tickTimers, TIMER_TICK);
+
+      // Every REFRESH_INTERVAL, fetch fresh data and reset timers
+      setInterval(async () => {
+        const freshData = await fetchData();
+        render(freshData);
+      }, REFRESH_INTERVAL);
+    }
+
+    start();
   </script>
 </body>
 </html>
